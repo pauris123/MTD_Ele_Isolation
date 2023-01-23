@@ -165,11 +165,23 @@ private:
   MonitorElement* meEleISO_Ntracks_; // Adding histograms for electrons (isolation stuff)
   MonitorElement* meEleISO_chIso_;
   MonitorElement* meEleISO_rel_chIso_;
-  MonitorElement* meEle_pt_;
-  MonitorElement* meEle_eta_;
-  MonitorElement* meEle_phi_;
+  MonitorElement* meEleISO_Ntracks_MTD_; // Adding histograms for electrons (isolation stuff)
+  MonitorElement* meEleISO_chIso_MTD_;
+  MonitorElement* meEleISO_rel_chIso_MTD_;
+  MonitorElement* meEle_pt_tot_;
+  MonitorElement* meEle_eta_tot_;
+  MonitorElement* meEle_phi_tot_;
   MonitorElement* meEle_test_;
   MonitorElement* meEle_track_eta_;
+  MonitorElement* meEle_Pvtx_match_;
+
+  MonitorElement* meEle_pt_MTD_;
+  MonitorElement* meEle_eta_MTD_;
+  MonitorElement* meEle_phi_MTD_;
+
+  MonitorElement* meEle_pt_noMTD_;
+  MonitorElement* meEle_eta_noMTD_;
+  MonitorElement* meEle_phi_noMTD_;
 
   MonitorElement* meETLTrackRPTime_;
   MonitorElement* meETLTrackEffEtaTot_[2];
@@ -527,7 +539,8 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
     float max_dR_cut = 0.3;
     float min_pt_cut = 1.0;
     float max_dz_cut = 0.15;
-    float max_dt_cut = 1; // 9999 //
+    float max_dz_vtx_cut = 0.01;
+    float max_dt_cut = 0.1; // 9999 //
     float min_strip_cut = 0.01;
     float min_track_mtd_mva_cut = 0.5;
 
@@ -560,6 +573,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                           max_dR_cut,
                           min_pt_cut,
                           max_dz_cut,
+                          max_dz_vtx_cut,
                           max_dt_cut,
                           min_strip_cut,
                           min_track_mtd_mva_cut,
@@ -575,7 +589,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
     
     for (const auto& ele : eleColl){
       
-      std::tuple<int,float,float> iso_return;
+      std::tuple<int,float,float,int,float,float> iso_return;
       
       iso_return = iso_object.ele_iso(&(*ele.gsfTrack()));
 
@@ -583,9 +597,29 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       //meEleISO_chIso_->Fill(iso_return.second);
       //meEleISO_rel_chIso_->Fill(iso_return.third);
 
-      meEleISO_Ntracks_->Fill(std::get<0>(iso_return)); // Filling hists for Ntraks and chIso sums //
-      meEleISO_chIso_->Fill(std::get<1>(iso_return));
-      meEleISO_rel_chIso_->Fill(std::get<2>(iso_return));
+      meEleISO_Ntracks_MTD_->Fill(std::get<0>(iso_return)); // Filling hists for Ntraks and chIso sums for MTD case//
+      meEleISO_chIso_MTD_->Fill(std::get<1>(iso_return));
+      meEleISO_rel_chIso_MTD_->Fill(std::get<2>(iso_return)); // 
+
+      meEleISO_Ntracks_->Fill(std::get<3>(iso_return)); // Filling hists for Ntraks and chIso sums for noMTD case //
+      meEleISO_chIso_->Fill(std::get<4>(iso_return));
+      meEleISO_rel_chIso_->Fill(std::get<5>(iso_return));
+
+      meEle_pt_tot_->Fill(ele.pt());
+      meEle_eta_tot_->Fill(ele.eta());
+      meEle_phi_tot_->Fill(ele.phi());
+
+      if(std::get<2>(iso_return) < 0.08){
+        meEle_pt_MTD_->Fill(ele.pt());
+        meEle_eta_MTD_->Fill(ele.eta());
+        meEle_phi_MTD_->Fill(ele.phi());
+      }
+
+      if(std::get<5>(iso_return) < 0.08){
+        meEle_pt_noMTD_->Fill(ele.pt());
+        meEle_eta_noMTD_->Fill(ele.eta());
+        meEle_phi_noMTD_->Fill(ele.phi());
+      }
 
     }
  
@@ -874,14 +908,29 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   meBTLTrackPtRes_ =
       ibook.book1D("TrackBTLPtRes", "Track pT resolution  ;pT_{Gentrack}-pT_{MTDtrack}/pT_{Gentrack} ", 100, -0.1, 0.1);
   
+  meEleISO_Ntracks_MTD_ = ibook.book1D("Ele_Iso_Ntracks_MTD", "Tracks in isolation cone around electron track after basic cuts with MTD", 20, 0, 10); // hists for electrons
+  meEleISO_chIso_MTD_ = ibook.book1D("Ele_chIso_sum_MTD", "Track pT sum in isolation cone around electron track after basic cuts with MTD", 20, 0, 10);
+  meEleISO_rel_chIso_MTD_ = ibook.book1D("Ele_rel_chIso_sum_MTD", "Track relative pT sum in isolation cone around electron track after basic cuts with MTD", 20, 0, 10);
+
   meEleISO_Ntracks_ = ibook.book1D("Ele_Iso_Ntracks", "Tracks in isolation cone around electron track after basic cuts", 20, 0, 10); // hists for electrons
   meEleISO_chIso_ = ibook.book1D("Ele_chIso_sum", "Track pT sum in isolation cone around electron track after basic cuts", 20, 0, 10);
   meEleISO_rel_chIso_ = ibook.book1D("Ele_rel_chIso_sum", "Track relative pT sum in isolation cone around electron track after basic cuts", 20, 0, 10);
-  meEle_pt_ = ibook.book1D("Ele_pT", "Electron pT", 100, 0, 100);
-  meEle_eta_ = ibook.book1D("Ele_eta", "Electron eta", 100, -3.2, 3.2);
-  meEle_phi_ = ibook.book1D("Ele_phi", "Electron phi", 100, -3.2, 3.2);
+
+  meEle_pt_tot_ = ibook.book1D("Ele_pT_tot", "Electron pT tot", 100, 0, 100);
+  meEle_pt_MTD_ = ibook.book1D("Ele_pT_MTD", "Electron pT MTD", 100, 0, 100);
+  meEle_pt_noMTD_ = ibook.book1D("Ele_pT_noMTD", "Electron pT noMTD", 100, 0, 100);
+
+  meEle_eta_tot_ = ibook.book1D("Ele_eta_tot", "Electron eta tot", 100, -3.2, 3.2);
+  meEle_eta_MTD_ = ibook.book1D("Ele_eta_MTD", "Electron eta MTD", 100, -3.2, 3.2);
+  meEle_eta_noMTD_ = ibook.book1D("Ele_eta_noMTD", "Electron eta noMTD", 100, -3.2, 3.2);
+
+  meEle_phi_tot_ = ibook.book1D("Ele_phi_tot", "Electron phi tot", 100, -3.2, 3.2);
+  meEle_phi_MTD_ = ibook.book1D("Ele_phi_MTD", "Electron phi MTD", 100, -3.2, 3.2);
+  meEle_phi_noMTD_ = ibook.book1D("Ele_phi_noMTD", "Electron phi noMTD", 100, -3.2, 3.2);
+
   meEle_test_ = ibook.book1D("Ele_test", "Test values", 10, 0, 10);
   meEle_track_eta_ = ibook.book1D("Ele_track_eta", "Electron track eta", 100, -3.2, 3.2);
+  meEle_Pvtx_match_ = ibook.book1D("Ele_Vtx_match","Electron track match to primary vertex",10,0,10);
 
 
   meETLTrackRPTime_ = ibook.book1D("TrackETLRPTime", "Track t0 with respect to R.P.;t0 [ns]", 100, -1, 3);
@@ -1141,3 +1190,4 @@ const bool MtdTracksValidation::tpWithMTD(const TrackingParticle& tp,
 }
 
 DEFINE_FWK_MODULE(MtdTracksValidation);
+
