@@ -24,6 +24,7 @@ public:
                 float max_dR_cut,
                 float min_pt_cut,
                 float max_dz_cut,
+                float max_dz_vtx_cut,
                 float max_dt_cut,
                 float min_strip_cut,
                 float min_track_mtd_mva_cut,
@@ -36,6 +37,7 @@ public:
         InConeSize_(min_dR_cut),
         Ptcut_(min_pt_cut),
         dZcut_(max_dz_cut),
+        dZvtxCut_(max_dz_vtx_cut),
         dtcut_(max_dt_cut),
         StripCut_(min_strip_cut),
         MtdMvaCut_(min_track_mtd_mva_cut),
@@ -49,7 +51,7 @@ public:
     
     ~MTD_Ele_iso();
 
-    std::tuple<int,float,float> ele_iso(const reco::GsfTrack*) const ; // const at the end???
+    std::tuple<int,float,float,int,float,float> ele_iso(const reco::GsfTrack*) const ; // const at the end???
 
 private:
 
@@ -57,6 +59,7 @@ private:
     float InConeSize_;
     float Ptcut_;
     float dZcut_;
+    float dZvtxCut_;
     float dtcut_;
     float StripCut_;
     float MtdMvaCut_;
