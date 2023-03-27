@@ -319,7 +319,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
     float max_dz_cut_EE = 0.2;
     float max_dz_vtx_cut = 0.5;
     float max_dxy_vtx_cut = 0.2; 
-    std::vector<double> max_dt_vtx_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04}; // has to be 7 values here!!! Code created for 7 dt values!! If change iso_object if number of dt values change.
+    std::vector<double> max_dt_vtx_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04}; // has to be 7 values here!!! Code created for 7 dt values!! Change lists and histogram count if number of dt values change.
     std::vector<double> max_dt_track_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04};
     float min_strip_cut = 0.01;
     float min_track_mtd_mva_cut = 0.5;
@@ -406,7 +406,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       
         bool eleMatch_found = false;
 
-        if( ele.pt()> 10 && fabs(ele.eta()) < 2.4 ){
+        if( ele.pt()> 10 && fabs(ele.eta()) < 2.4 ){ // find RECO-GenP electron match
 
             float ele_track_source_dz = 0;
             float ele_track_source_dxy = 0;
@@ -511,7 +511,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                     }
 
                     if(track_match_PV_){
-                        if(Vtx_chosen.trackWeight(trackref_general) < 0.5){ // cut for general track matching to PV, used as an extra check for 4D vertex collection !!!!!!!!!!!!!!!!!
+                        if(Vtx_chosen.trackWeight(trackref_general) < 0.5){ // cut for general track matching to PV
                             continue;
                         }
                     }
@@ -549,7 +549,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                                   pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();
                                 }
                             }
-                        }else{ // if there is no error for MTD information, we count the MTD isolation case saem as noMTD
+                        }else{ // if there is no error for MTD information, we count the MTD isolation case same as noMTD
                             for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
                                 N_tracks_MTD[i] = N_tracks_noMTD;
                                 pT_sum_MTD[i] = pT_sum_noMTD;  
@@ -586,6 +586,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                     rel_pT_sum_MTD[i] = pT_sum_MTD[i]/ele.gsfTrack()->pt(); 
                 }
 
+                // defining vectors for more efficient hist filling
                 std::vector<MonitorElement*> Ntracks_EB_list = {meEleISO_Ntracks_MTD_1_EB_,meEleISO_Ntracks_MTD_2_EB_,meEleISO_Ntracks_MTD_3_EB_,meEleISO_Ntracks_MTD_4_EB_,meEleISO_Ntracks_MTD_5_EB_,meEleISO_Ntracks_MTD_6_EB_,meEleISO_Ntracks_MTD_7_EB_};
                 std::vector<MonitorElement*> ch_iso_EB_list = {meEleISO_chIso_MTD_1_EB_,meEleISO_chIso_MTD_2_EB_,meEleISO_chIso_MTD_3_EB_,meEleISO_chIso_MTD_4_EB_,meEleISO_chIso_MTD_5_EB_,meEleISO_chIso_MTD_6_EB_,meEleISO_chIso_MTD_7_EB_};
                 std::vector<MonitorElement*> rel_ch_iso_EB_list = {meEleISO_rel_chIso_MTD_1_EB_,meEleISO_rel_chIso_MTD_2_EB_,meEleISO_rel_chIso_MTD_3_EB_,meEleISO_rel_chIso_MTD_4_EB_,meEleISO_rel_chIso_MTD_5_EB_,meEleISO_rel_chIso_MTD_6_EB_,meEleISO_rel_chIso_MTD_7_EB_};
@@ -614,7 +615,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                         rel_ch_iso_EB_list[j]->Fill(rel_pT_sum_MTD[j]);
                     }
 
-                    if(rel_pT_sum_noMTD < 0.08 ){
+                    if(rel_pT_sum_noMTD < 0.08 ){ // filling hists for iso efficiency calculations
                         meEle_pt_noMTD_EB_->Fill(ele.pt());
                         meEle_eta_noMTD_EB_->Fill(ele.eta());
                         meEle_phi_noMTD_EB_->Fill(ele.phi());
@@ -639,7 +640,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                         rel_ch_iso_EE_list[j]->Fill(rel_pT_sum_MTD[j]);
                     }
 
-                    if(rel_pT_sum_noMTD < 0.08 ){
+                    if(rel_pT_sum_noMTD < 0.08 ){ // filling hists for iso efficiency calculations
                         meEle_pt_noMTD_EE_->Fill(ele.pt());
                         meEle_eta_noMTD_EE_->Fill(ele.eta());
                         meEle_phi_noMTD_EE_->Fill(ele.phi());
@@ -860,4 +861,3 @@ void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
 DEFINE_FWK_MODULE(MtdEleIsoValidation); 
 
 //*/
-
