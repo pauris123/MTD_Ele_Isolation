@@ -75,6 +75,8 @@ private:
   bool track_match_PV_;
   bool dt_sig_vtx_;
   bool dt_sig_track_;
+  bool vertex_3D_;
+  bool vertex_4D_;
 
   edm::EDGetTokenT<reco::TrackCollection> GenRecTrackToken_;
   edm::EDGetTokenT<reco::TrackCollection> RecTrackToken_;
@@ -251,7 +253,9 @@ MtdEleIsoValidation::MtdEleIsoValidation(const edm::ParameterSet& iConfig)
       electron_iso_calc_(iConfig.getUntrackedParameter<bool>("optionalEleIso")),
       track_match_PV_(iConfig.getUntrackedParameter<bool>("optionTrackMatchToPV")),
       dt_sig_vtx_(iConfig.getUntrackedParameter<bool>("option_dtToPV")),
-      dt_sig_track_(iConfig.getUntrackedParameter<bool>("option_dtToTrack")) {
+      dt_sig_track_(iConfig.getUntrackedParameter<bool>("option_dtToTrack")),
+      vertex_3D_(iConfig.getUntrackedParameter<bool>("option_vtx_3D")),
+      vertex_4D_(iConfig.getUntrackedParameter<bool>("option_vtx_4D")) {
   GenRecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTagG"));
   RecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTagT"));
   RecVertexToken_4D_ = consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("inputTag_4D")); // Vtx 4D collection
@@ -352,6 +356,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
     // Selecting the PV from 3D and 4D vertex collections
     reco::Vertex Vtx_chosen_3D;
     reco::Vertex Vtx_chosen_4D;
+    reco::Vertex Vtx_chosen;
     std::vector <reco::Vertex> vertices_3D = *VertexHandle_3D;
     std::vector <reco::Vertex> vertices_4D = *VertexHandle_4D; 
     
@@ -385,6 +390,14 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
             break;
         }
     }
+
+    if(vertex_3D_){
+        Vtx_chosen = Vtx_chosen_3D;
+    }else if(vertex_4D_){
+        Vtx_chosen = Vtx_chosen_4D;
+    }else{
+        Vtx_chosen = Vtx_chosen_4D;
+    }
     // Vertex selecton ends
 
 
@@ -398,8 +411,8 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
             float ele_track_source_dz = 0;
             float ele_track_source_dxy = 0;
 
-            ele_track_source_dz = fabs(ele.gsfTrack()->dz(Vtx_chosen_4D.position()));
-            ele_track_source_dxy = fabs(ele.gsfTrack()->dxy(Vtx_chosen_4D.position()));
+            ele_track_source_dz = fabs(ele.gsfTrack()->dz(Vtx_chosen.position()));
+            ele_track_source_dxy = fabs(ele.gsfTrack()->dxy(Vtx_chosen.position()));
         
             if( ele_track_source_dz < max_dz_vtx_cut && ele_track_source_dxy < max_dxy_vtx_cut){
             
@@ -498,7 +511,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                     }
 
                     if(track_match_PV_){
-                        if(Vtx_chosen_4D.trackWeight(trackref_general) < 0.5){ // cut for general track matching to PV, used as an extra check for 4D vertex collection !!!!!!!!!!!!!!!!!
+                        if(Vtx_chosen.trackWeight(trackref_general) < 0.5){ // cut for general track matching to PV, used as an extra check for 4D vertex collection !!!!!!!!!!!!!!!!!
                             continue;
                         }
                     }
@@ -544,13 +557,13 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                         }
                     }
 
-                    if(dt_sig_vtx_){
+                    if(dt_sig_vtx_ && vertex_4D_){
 
                         double dt_vtx = 0;  // dt regular track vs vtx
 
-                        if(TrkMTDTimeErr > 0 && Vtx_chosen_4D.tError() > 0){
+                        if(TrkMTDTimeErr > 0 && Vtx_chosen.tError() > 0){
 
-                            dt_vtx = TrkMTDTime - Vtx_chosen_4D.t();
+                            dt_vtx = TrkMTDTime - Vtx_chosen.t();
                             //dt_vtx_signif = dt_vtx/std::sqrt(TrkMTDTimeErr*TrkMTDTimeErr + Vtx_chosen.tError()*Vtx_chosen.tError());
 
                             for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
@@ -836,6 +849,8 @@ void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.addUntracked<bool>("optionTrackMatchToPV", false);
   desc.addUntracked<bool>("option_dtToPV", true);
   desc.addUntracked<bool>("option_dtToTrack", false);
+  desc.addUntracked<bool>("option_vtx_3D", false);
+  desc.addUntracked<bool>("option_vtx_4D", true);
   
   descriptions.add("mtdEleIsoValid", desc);
    // Added option to calculate ele iso
@@ -845,3 +860,4 @@ void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
 DEFINE_FWK_MODULE(MtdEleIsoValidation); 
 
 //*/
+
