@@ -566,9 +566,6 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                             }
                         }
                     }
-                    
-
-
                 }
 
                 rel_pT_sum_noMTD = pT_sum_noMTD/ele.gsfTrack()->pt(); // rel_ch_iso calculation
@@ -576,6 +573,21 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                     rel_pT_sum_MTD[i] = pT_sum_MTD[i]/ele.gsfTrack()->pt(); 
                 }
 
+                std::vector<MonitorElement*> Ntracks_EB_list = {meEleISO_Ntracks_MTD_1_EB_,meEleISO_Ntracks_MTD_2_EB_,meEleISO_Ntracks_MTD_3_EB_,meEleISO_Ntracks_MTD_4_EB_,meEleISO_Ntracks_MTD_5_EB_,meEleISO_Ntracks_MTD_6_EB_,meEleISO_Ntracks_MTD_7_EB_};
+                std::vector<MonitorElement*> ch_iso_EB_list = {meEleISO_chIso_MTD_1_EB_,meEleISO_chIso_MTD_2_EB_,meEleISO_chIso_MTD_3_EB_,meEleISO_chIso_MTD_4_EB_,meEleISO_chIso_MTD_5_EB_,meEleISO_chIso_MTD_6_EB_,meEleISO_chIso_MTD_7_EB_};
+                std::vector<MonitorElement*> rel_ch_iso_EB_list = {meEleISO_rel_chIso_MTD_1_EB_,meEleISO_rel_chIso_MTD_2_EB_,meEleISO_rel_chIso_MTD_3_EB_,meEleISO_rel_chIso_MTD_4_EB_,meEleISO_rel_chIso_MTD_5_EB_,meEleISO_rel_chIso_MTD_6_EB_,meEleISO_rel_chIso_MTD_7_EB_};
+
+                std::vector<MonitorElement*> Ntracks_EE_list = {meEleISO_Ntracks_MTD_1_EE_,meEleISO_Ntracks_MTD_2_EE_,meEleISO_Ntracks_MTD_3_EE_,meEleISO_Ntracks_MTD_4_EE_,meEleISO_Ntracks_MTD_5_EE_,meEleISO_Ntracks_MTD_6_EE_,meEleISO_Ntracks_MTD_7_EE_};
+                std::vector<MonitorElement*> ch_iso_EE_list = {meEleISO_chIso_MTD_1_EE_,meEleISO_chIso_MTD_2_EE_,meEleISO_chIso_MTD_3_EE_,meEleISO_chIso_MTD_4_EE_,meEleISO_chIso_MTD_5_EE_,meEleISO_chIso_MTD_6_EE_,meEleISO_chIso_MTD_7_EE_};
+                std::vector<MonitorElement*> rel_ch_iso_EE_list = {meEleISO_rel_chIso_MTD_1_EE_,meEleISO_rel_chIso_MTD_2_EE_,meEleISO_rel_chIso_MTD_3_EE_,meEleISO_rel_chIso_MTD_4_EE_,meEleISO_rel_chIso_MTD_5_EE_,meEleISO_rel_chIso_MTD_6_EE_,meEleISO_rel_chIso_MTD_7_EE_};
+
+                std::vector<MonitorElement*> Ele_pT_MTD_EB_list = {meEle_pt_MTD_1_EB_,meEle_pt_MTD_2_EB_,meEle_pt_MTD_3_EB_,meEle_pt_MTD_4_EB_,meEle_pt_MTD_5_EB_,meEle_pt_MTD_6_EB_,meEle_pt_MTD_7_EB_};
+                std::vector<MonitorElement*> Ele_eta_MTD_EB_list = {meEle_eta_MTD_1_EB_,meEle_eta_MTD_2_EB_,meEle_eta_MTD_3_EB_,meEle_eta_MTD_4_EB_,meEle_eta_MTD_5_EB_,meEle_eta_MTD_6_EB_,meEle_eta_MTD_7_EB_};
+                std::vector<MonitorElement*> Ele_phi_MTD_EB_list = {meEle_phi_MTD_1_EB_,meEle_phi_MTD_2_EB_,meEle_phi_MTD_3_EB_,meEle_phi_MTD_4_EB_,meEle_phi_MTD_5_EB_,meEle_phi_MTD_6_EB_,meEle_phi_MTD_7_EB_};
+
+                std::vector<MonitorElement*> Ele_pT_MTD_EE_list = {meEle_pt_MTD_1_EE_,meEle_pt_MTD_2_EE_,meEle_pt_MTD_3_EE_,meEle_pt_MTD_4_EE_,meEle_pt_MTD_5_EE_,meEle_pt_MTD_6_EE_,meEle_pt_MTD_7_EE_};
+                std::vector<MonitorElement*> Ele_eta_MTD_EE_list = {meEle_eta_MTD_1_EE_,meEle_eta_MTD_2_EE_,meEle_eta_MTD_3_EE_,meEle_eta_MTD_4_EE_,meEle_eta_MTD_5_EE_,meEle_eta_MTD_6_EE_,meEle_eta_MTD_7_EE_};
+                std::vector<MonitorElement*> Ele_phi_MTD_EE_list = {meEle_phi_MTD_1_EE_,meEle_phi_MTD_2_EE_,meEle_phi_MTD_3_EE_,meEle_phi_MTD_4_EE_,meEle_phi_MTD_5_EE_,meEle_phi_MTD_6_EE_,meEle_phi_MTD_7_EE_};
 
                 if(Barrel_ele){
 
@@ -583,166 +595,54 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                     meEleISO_chIso_EB_->Fill(pT_sum_noMTD);
                     meEleISO_rel_chIso_EB_->Fill(rel_pT_sum_noMTD);
 
-                    meEleISO_Ntracks_MTD_1_EB_->Fill(N_tracks_MTD[0]); // Filling hists for Ntraks and chIso sums for MTD case//
-                    meEleISO_chIso_MTD_1_EB_->Fill(pT_sum_MTD[0]);
-                    meEleISO_rel_chIso_MTD_1_EB_->Fill(rel_pT_sum_MTD[0]); 
-
-                    meEleISO_Ntracks_MTD_2_EB_->Fill(N_tracks_MTD[1]); 
-                    meEleISO_chIso_MTD_2_EB_->Fill(pT_sum_MTD[1]);
-                    meEleISO_rel_chIso_MTD_2_EB_->Fill(rel_pT_sum_MTD[1]);
-
-                    meEleISO_Ntracks_MTD_3_EB_->Fill(N_tracks_MTD[2]); 
-                    meEleISO_chIso_MTD_3_EB_->Fill(pT_sum_MTD[2]);
-                    meEleISO_rel_chIso_MTD_3_EB_->Fill(rel_pT_sum_MTD[2]);
-
-                    meEleISO_Ntracks_MTD_4_EB_->Fill(N_tracks_MTD[3]); 
-                    meEleISO_chIso_MTD_4_EB_->Fill(pT_sum_MTD[3]);
-                    meEleISO_rel_chIso_MTD_4_EB_->Fill(rel_pT_sum_MTD[3]);
-
-                    meEleISO_Ntracks_MTD_5_EB_->Fill(N_tracks_MTD[4]); 
-                    meEleISO_chIso_MTD_5_EB_->Fill(pT_sum_MTD[4]);
-                    meEleISO_rel_chIso_MTD_5_EB_->Fill(rel_pT_sum_MTD[4]);
-
-                    meEleISO_Ntracks_MTD_6_EB_->Fill(N_tracks_MTD[5]); 
-                    meEleISO_chIso_MTD_6_EB_->Fill(pT_sum_MTD[5]);
-                    meEleISO_rel_chIso_MTD_6_EB_->Fill(rel_pT_sum_MTD[5]);
-
-                    meEleISO_Ntracks_MTD_7_EB_->Fill(N_tracks_MTD[6]); 
-                    meEleISO_chIso_MTD_7_EB_->Fill(pT_sum_MTD[6]);
-                    meEleISO_rel_chIso_MTD_7_EB_->Fill(rel_pT_sum_MTD[6]);
+                    for(long unsigned int j = 0 ; j < Ntracks_EB_list.size(); j++){
+                        Ntracks_EB_list[j]->Fill(N_tracks_MTD[j]);
+                        ch_iso_EB_list[j]->Fill(pT_sum_MTD[j]);
+                        rel_ch_iso_EB_list[j]->Fill(rel_pT_sum_MTD[j]);
+                    }
 
                     if(rel_pT_sum_noMTD < 0.08 ){
                         meEle_pt_noMTD_EB_->Fill(ele.pt());
                         meEle_eta_noMTD_EB_->Fill(ele.eta());
                         meEle_phi_noMTD_EB_->Fill(ele.phi());
                     }
-                
-                    if(rel_pT_sum_MTD[0] < 0.08 ){
-                        meEle_pt_MTD_1_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_1_EB_->Fill(ele.eta());
-                         meEle_phi_MTD_1_EB_->Fill(ele.phi());
+
+                    for(long unsigned int k = 0 ; k < Ntracks_EB_list.size(); k++){
+                        if(rel_pT_sum_MTD[k] < 0.08){
+                            Ele_pT_MTD_EB_list[k]->Fill(ele.pt());
+                            Ele_eta_MTD_EB_list[k]->Fill(ele.eta());
+                            Ele_phi_MTD_EB_list[k]->Fill(ele.phi());
+                        }   
                     }
 
-                    if(rel_pT_sum_MTD[1] < 0.08 ){
-                        meEle_pt_MTD_2_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_2_EB_->Fill(ele.eta());
-                        meEle_phi_MTD_2_EB_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[2] < 0.08 ){
-                        meEle_pt_MTD_3_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_3_EB_->Fill(ele.eta());
-                        meEle_phi_MTD_3_EB_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[3] < 0.08 ){
-                        meEle_pt_MTD_4_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_4_EB_->Fill(ele.eta());
-                        meEle_phi_MTD_4_EB_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[4] < 0.08 ){
-                        meEle_pt_MTD_5_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_5_EB_->Fill(ele.eta());
-                        meEle_phi_MTD_5_EB_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[5] < 0.08 ){
-                        meEle_pt_MTD_6_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_6_EB_->Fill(ele.eta());
-                        meEle_phi_MTD_6_EB_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[6] < 0.08 ){
-                        meEle_pt_MTD_7_EB_->Fill(ele.pt());
-                        meEle_eta_MTD_7_EB_->Fill(ele.eta());
-                        meEle_phi_MTD_7_EB_->Fill(ele.phi());
-                    }
-
-                }else{
+                }else{ // for endcap
                     meEleISO_Ntracks_EE_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
                     meEleISO_chIso_EE_->Fill(pT_sum_noMTD);
                     meEleISO_rel_chIso_EE_->Fill(rel_pT_sum_noMTD);
 
-                    meEleISO_Ntracks_MTD_1_EE_->Fill(N_tracks_MTD[0]); // Filling hists for Ntraks and chIso sums for MTD case//
-                    meEleISO_chIso_MTD_1_EE_->Fill(pT_sum_MTD[0]);
-                    meEleISO_rel_chIso_MTD_1_EE_->Fill(rel_pT_sum_MTD[0]); 
-
-                    meEleISO_Ntracks_MTD_2_EE_->Fill(N_tracks_MTD[1]); 
-                    meEleISO_chIso_MTD_2_EE_->Fill(pT_sum_MTD[1]);
-                    meEleISO_rel_chIso_MTD_2_EE_->Fill(rel_pT_sum_MTD[1]);
-
-                    meEleISO_Ntracks_MTD_3_EE_->Fill(N_tracks_MTD[2]); 
-                    meEleISO_chIso_MTD_3_EE_->Fill(pT_sum_MTD[2]);
-                    meEleISO_rel_chIso_MTD_3_EE_->Fill(rel_pT_sum_MTD[2]);
-
-                    meEleISO_Ntracks_MTD_4_EE_->Fill(N_tracks_MTD[3]); 
-                    meEleISO_chIso_MTD_4_EE_->Fill(pT_sum_MTD[3]);
-                    meEleISO_rel_chIso_MTD_4_EE_->Fill(rel_pT_sum_MTD[3]);
-
-                    meEleISO_Ntracks_MTD_5_EE_->Fill(N_tracks_MTD[4]); 
-                    meEleISO_chIso_MTD_5_EE_->Fill(pT_sum_MTD[4]);
-                    meEleISO_rel_chIso_MTD_5_EE_->Fill(rel_pT_sum_MTD[4]);
-
-                    meEleISO_Ntracks_MTD_6_EE_->Fill(N_tracks_MTD[5]); 
-                    meEleISO_chIso_MTD_6_EE_->Fill(pT_sum_MTD[5]);
-                    meEleISO_rel_chIso_MTD_6_EE_->Fill(rel_pT_sum_MTD[5]);
-
-                    meEleISO_Ntracks_MTD_7_EE_->Fill(N_tracks_MTD[6]); 
-                    meEleISO_chIso_MTD_7_EE_->Fill(pT_sum_MTD[6]);
-                    meEleISO_rel_chIso_MTD_7_EE_->Fill(rel_pT_sum_MTD[6]);
+                    for(long unsigned int j = 0 ; j < Ntracks_EE_list.size(); j++){
+                        Ntracks_EE_list[j]->Fill(N_tracks_MTD[j]);
+                        ch_iso_EE_list[j]->Fill(pT_sum_MTD[j]);
+                        rel_ch_iso_EE_list[j]->Fill(rel_pT_sum_MTD[j]);
+                    }
 
                     if(rel_pT_sum_noMTD < 0.08 ){
                         meEle_pt_noMTD_EE_->Fill(ele.pt());
                         meEle_eta_noMTD_EE_->Fill(ele.eta());
                         meEle_phi_noMTD_EE_->Fill(ele.phi());
                     }
-                
-                    if(rel_pT_sum_MTD[0] < 0.08 ){
-                        meEle_pt_MTD_1_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_1_EE_->Fill(ele.eta());
-                         meEle_phi_MTD_1_EE_->Fill(ele.phi());
-                    }
 
-                    if(rel_pT_sum_MTD[1] < 0.08 ){
-                        meEle_pt_MTD_2_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_2_EE_->Fill(ele.eta());
-                        meEle_phi_MTD_2_EE_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[2] < 0.08 ){
-                        meEle_pt_MTD_3_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_3_EE_->Fill(ele.eta());
-                        meEle_phi_MTD_3_EE_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[3] < 0.08 ){
-                        meEle_pt_MTD_4_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_4_EE_->Fill(ele.eta());
-                        meEle_phi_MTD_4_EE_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[4] < 0.08 ){
-                        meEle_pt_MTD_5_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_5_EE_->Fill(ele.eta());
-                        meEle_phi_MTD_5_EE_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[5] < 0.08 ){
-                        meEle_pt_MTD_6_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_6_EE_->Fill(ele.eta());
-                        meEle_phi_MTD_6_EE_->Fill(ele.phi());
-                    }
-
-                    if(rel_pT_sum_MTD[6] < 0.08 ){
-                        meEle_pt_MTD_7_EE_->Fill(ele.pt());
-                        meEle_eta_MTD_7_EE_->Fill(ele.eta());
-                        meEle_phi_MTD_7_EE_->Fill(ele.phi());
+                    for(long unsigned int k = 0 ; k < Ntracks_EE_list.size(); k++){
+                        if(rel_pT_sum_MTD[k] < 0.08){
+                            Ele_pT_MTD_EE_list[k]->Fill(ele.pt());
+                            Ele_eta_MTD_EE_list[k]->Fill(ele.eta());
+                            Ele_phi_MTD_EE_list[k]->Fill(ele.phi());
+                        }   
                     }
                 } 
             }
         } // genP matching cut
-    } // electron collection inside single event end (Barrel)
+    } // electron collection inside single event
   } // Bool iso statement end
 
 }
