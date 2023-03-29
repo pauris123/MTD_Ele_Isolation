@@ -551,8 +551,8 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                             }
                         }else{ // if there is no error for MTD information, we count the MTD isolation case same as noMTD
                             for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                                N_tracks_MTD[i] = N_tracks_noMTD;
-                                pT_sum_MTD[i] = pT_sum_noMTD;  
+                                N_tracks_MTD[i] = N_tracks_MTD[i] + 1; // N_tracks_noMTD
+                                pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();  // old bugged value was pT_sum_noMTD
                             }
                         }
                     }
@@ -574,8 +574,8 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                             }
                         }else{
                             for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                                N_tracks_MTD[i] = N_tracks_noMTD;
-                                pT_sum_MTD[i] = pT_sum_noMTD;  
+                                N_tracks_MTD[i] = N_tracks_MTD[i] + 1; // N_tracks_noMTD
+                                pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();  // pT_sum_noMTD
                             }
                         }
                     }
