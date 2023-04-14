@@ -78,6 +78,22 @@ private:
   bool vertex_3D_;
   bool vertex_4D_;
 
+  static constexpr float min_dR_cut = 0.01;
+  static constexpr float max_dR_cut = 0.3;
+  static constexpr float min_pt_cut_EB = 0.7; // 0.4 for endcap
+  static constexpr float min_pt_cut_EE = 0.4;
+  static constexpr float max_dz_cut_EB = 0.1; // will check 0.15/0.20/0.25/0.30 for tracks in iso cone // 0.1 for barrel, 0.2 for endcap
+  static constexpr float max_dz_cut_EE = 0.2;
+  static constexpr float max_dz_vtx_cut = 0.5;
+  static constexpr float max_dxy_vtx_cut = 0.2;
+  const std::vector<double> max_dt_vtx_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04}; // has to be 7 values here!!! Code created for 7 dt values!! Change lists and histogram count if number of dt values change.
+  const std::vector<double> max_dt_track_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04}; 
+  static constexpr float min_strip_cut = 0.01;
+  static constexpr float min_track_mtd_mva_cut = 0.5;
+
+
+
+
   edm::EDGetTokenT<reco::TrackCollection> GenRecTrackToken_;
   edm::EDGetTokenT<reco::TrackCollection> RecTrackToken_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> RecVertexToken_4D_;
@@ -449,21 +465,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
   //const auto& pathLength = iEvent.get(pathLengthToken_);
 
  
- 
   if(electron_iso_calc_){
-    
-    float min_dR_cut = 0.01;
-    float max_dR_cut = 0.3;
-    float min_pt_cut_EB = 0.7; // 0.4 for endcap
-    float min_pt_cut_EE = 0.4;
-    float max_dz_cut_EB = 0.1; // will check 0.15/0.20/0.25/0.30 for tracks in iso cone // 0.1 for barrel, 0.2 for endcap
-    float max_dz_cut_EE = 0.2;
-    float max_dz_vtx_cut = 0.5;
-    float max_dxy_vtx_cut = 0.2; 
-    std::vector<double> max_dt_vtx_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04}; // has to be 7 values here!!! Code created for 7 dt values!! Change lists and histogram count if number of dt values change.
-    std::vector<double> max_dt_track_cut{0.30,0.20,0.15,0.10,0.08,0.06,0.04};
-    float min_strip_cut = 0.01;
-    float min_track_mtd_mva_cut = 0.5;
     
     
     auto eleHandle_EB = makeValid(iEvent.getHandle(GsfElectronToken_EB_));
@@ -539,7 +541,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
     }else{
         Vtx_chosen = Vtx_chosen_4D;
     }
-    // Vertex selecton ends
+    // Vertex selection ends
 
 
     //for (const auto& ele : eleColl_EB){
