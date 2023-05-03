@@ -70,13 +70,11 @@ private:
   const float trackMinPt_;
   const float trackMinEta_;
   const float trackMaxEta_;
+  const double rel_iso_cut_;
 
-  bool electron_iso_calc_;
   bool track_match_PV_;
   bool dt_sig_vtx_;
   bool dt_sig_track_;
-  bool vertex_3D_;
-  bool vertex_4D_;
 
   static constexpr float min_dR_cut = 0.01;
   static constexpr float max_dR_cut = 0.3;
@@ -96,8 +94,7 @@ private:
 
   edm::EDGetTokenT<reco::TrackCollection> GenRecTrackToken_;
   edm::EDGetTokenT<reco::TrackCollection> RecTrackToken_;
-  edm::EDGetTokenT<std::vector<reco::Vertex>> RecVertexToken_4D_;
-  edm::EDGetTokenT<std::vector<reco::Vertex>> RecVertexToken_3D_;
+  edm::EDGetTokenT<std::vector<reco::Vertex>> RecVertexToken_;
 
   edm::EDGetTokenT<reco::GsfElectronCollection> GsfElectronToken_EB_; // Adding token for electron collection 
   edm::EDGetTokenT<reco::GsfElectronCollection> GsfElectronToken_EE_;
@@ -407,16 +404,13 @@ MtdEleIsoValidation::MtdEleIsoValidation(const edm::ParameterSet& iConfig)
       trackMinPt_(iConfig.getParameter<double>("trackMinimumPt")),
       trackMinEta_(iConfig.getParameter<double>("trackMinimumEta")),
       trackMaxEta_(iConfig.getParameter<double>("trackMaximumEta")),
-      electron_iso_calc_(iConfig.getUntrackedParameter<bool>("optionalEleIso")),
+      rel_iso_cut_(iConfig.getParameter<double>("rel_iso_cut")),
       track_match_PV_(iConfig.getUntrackedParameter<bool>("optionTrackMatchToPV")),
       dt_sig_vtx_(iConfig.getUntrackedParameter<bool>("option_dtToPV")),
-      dt_sig_track_(iConfig.getUntrackedParameter<bool>("option_dtToTrack")),
-      vertex_3D_(iConfig.getUntrackedParameter<bool>("option_vtx_3D")),
-      vertex_4D_(iConfig.getUntrackedParameter<bool>("option_vtx_4D")) {
+      dt_sig_track_(iConfig.getUntrackedParameter<bool>("option_dtToTrack")) {
   GenRecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTagG"));
   RecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTagT"));
-  RecVertexToken_4D_ = consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("inputTag_4D")); // Vtx 4D collection
-  RecVertexToken_3D_ = consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("inputTag_3D")); // Vtx 3D collection
+  RecVertexToken_ = consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("inputTag_vtx")); // Vtx 4D collection
 
   GsfElectronToken_EB_ = consumes<reco::GsfElectronCollection>(iConfig.getParameter<edm::InputTag>("inputEle_EB")); // Barrel electron collection input/token
   GsfElectronToken_EE_ = consumes<reco::GsfElectronCollection>(iConfig.getParameter<edm::InputTag>("inputEle_EE")); // Endcap electron collection input/token
@@ -449,8 +443,7 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   edm::Handle <reco::TrackCollection> GenRecTrackHandle = iEvent.getHandle(GenRecTrackToken_);
   
-  auto RecVertexHandle_4D = makeValid(iEvent.getHandle(RecVertexToken_4D_));
-  auto RecVertexHandle_3D = makeValid(iEvent.getHandle(RecVertexToken_3D_));
+  //auto RecVertexHandle_ = makeValid(iEvent.getHandle(RecVertexToken_));
 
   //const auto& tMtd = iEvent.get(tmtdToken_);
   //const auto& SigmatMtd = iEvent.get(SigmatmtdToken_);
@@ -465,433 +458,406 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
   //const auto& pathLength = iEvent.get(pathLengthToken_);
 
  
-  if(electron_iso_calc_){
+
     
     
-    auto eleHandle_EB = makeValid(iEvent.getHandle(GsfElectronToken_EB_));
-    reco::GsfElectronCollection eleColl_EB = *(eleHandle_EB.product());
+  auto eleHandle_EB = makeValid(iEvent.getHandle(GsfElectronToken_EB_));
+  reco::GsfElectronCollection eleColl_EB = *(eleHandle_EB.product());
 
-    auto eleHandle_EE = makeValid(iEvent.getHandle(GsfElectronToken_EE_));
-    reco::GsfElectronCollection eleColl_EE = *(eleHandle_EE.product());
+  auto eleHandle_EE = makeValid(iEvent.getHandle(GsfElectronToken_EE_));
+  reco::GsfElectronCollection eleColl_EE = *(eleHandle_EE.product());
 
-    auto GenPartHandle = makeValid(iEvent.getHandle(GenParticleToken_));
-    reco::GenParticleCollection GenPartColl = *(GenPartHandle.product());
+  auto GenPartHandle = makeValid(iEvent.getHandle(GenParticleToken_));
+  reco::GenParticleCollection GenPartColl = *(GenPartHandle.product());
 
-    auto VertexHandle_3D = iEvent.getHandle(RecVertexToken_3D_);
-    auto VertexHandle_4D = iEvent.getHandle(RecVertexToken_4D_);
+  auto VertexHandle_ = iEvent.getHandle(RecVertexToken_);
 
-    // Creating combined electron collection
+  // Creating combined electron collection
 
-    std::vector<reco::GsfElectron> localEleCollection;
+  std::vector<reco::GsfElectron> localEleCollection;
 
-    for(const auto& ele_EB : eleColl_EB){
-        if(ele_EB.isEB()){
-            localEleCollection.push_back(ele_EB);
-        }
+  for(const auto& ele_EB : eleColl_EB){
+    if(ele_EB.isEB()){
+          localEleCollection.push_back(ele_EB);
     }
+  }
 
-    for(const auto& ele_EE : eleColl_EE){
-        if(ele_EE.isEE()){
-            localEleCollection.push_back(ele_EE);
-        }
-    }  
-    
-    // Selecting the PV from 3D and 4D vertex collections
-    reco::Vertex Vtx_chosen_3D;
-    reco::Vertex Vtx_chosen_4D;
-    reco::Vertex Vtx_chosen;
-    std::vector <reco::Vertex> vertices_3D = *VertexHandle_3D;
-    std::vector <reco::Vertex> vertices_4D = *VertexHandle_4D; 
-    
-    int nGoodVertex_3D = 0;
-    int nGoodVertex_4D = 0;
-    
-    for(int iVtx = 0; iVtx < (int) vertices_3D.size(); iVtx++){
-        const reco::Vertex &vertex = vertices_3D.at(iVtx);
-      
-        bool isGoodVertex = (!vertex.isFake() && vertex.ndof() >= 4);
-      
-        nGoodVertex_3D += (int) isGoodVertex;
-      
-        if(nGoodVertex_3D)
-        {
-            Vtx_chosen_3D = vertex;
-            break;
-        }
+  for(const auto& ele_EE : eleColl_EE){
+    if(ele_EE.isEE()){
+        localEleCollection.push_back(ele_EE);
     }
+  }  
 
+  // Selecting the PV from 3D and 4D vertex collections
+  
+  reco::Vertex Vtx_chosen;
+  std::vector <reco::Vertex> vertices = *VertexHandle_; 
 
-    for(int iVtx = 0; iVtx < (int) vertices_4D.size(); iVtx++){
-        const reco::Vertex &vertex = vertices_4D.at(iVtx);
-      
-        bool isGoodVertex = (!vertex.isFake() && vertex.ndof() >= 4);
-      
-        nGoodVertex_4D += (int) isGoodVertex;
-      
-        if(nGoodVertex_4D){
-            Vtx_chosen_4D = vertex;
-            break;
-        }
-    }
+  int nGoodVertex = 0;
 
-    if(vertex_3D_){
-        Vtx_chosen = Vtx_chosen_3D;
-    }else if(vertex_4D_){
-        Vtx_chosen = Vtx_chosen_4D;
-    }else{
-        Vtx_chosen = Vtx_chosen_4D;
-    }
-    // Vertex selection ends
-
-
-    //for (const auto& ele : eleColl_EB){
-    for (const auto& ele : localEleCollection){
+  // This part has to be included, because in ~1% of the events, the "good" vertex is the 1st one not the 0th one in the collection
+  for(int iVtx = 0; iVtx < (int) vertices.size(); iVtx++){
+    const reco::Vertex &vertex = vertices.at(iVtx);
     
-        bool ele_Promt = false;
-        //bool ele_nonPromt = false;
+    bool isGoodVertex = (!vertex.isFake() && vertex.ndof() >= 4);
+    
+    nGoodVertex += (int) isGoodVertex;
+    
+    if(nGoodVertex){
+        Vtx_chosen = vertex;
+        break;
+    }
+  }
+  // Vertex selection ends
 
-        float ele_track_source_dz = 0;
-        float ele_track_source_dxy = 0;
 
-        ele_track_source_dz = fabs(ele.gsfTrack()->dz(Vtx_chosen.position()));
-        ele_track_source_dxy = fabs(ele.gsfTrack()->dxy(Vtx_chosen.position()));
+  //for (const auto& ele : eleColl_EB){
+  for (const auto& ele : localEleCollection){
 
-        if( ele.pt()> 10 && fabs(ele.eta()) < 2.4 && ele_track_source_dz < max_dz_vtx_cut && ele_track_source_dxy < max_dxy_vtx_cut ){ // find RECO-GenP electron match
-            
-            math::XYZVector EleMomentum = ele.momentum(); 
-            
-            for(const auto& genParticle : GenPartColl){
-                
-                if( fabs(genParticle.pdgId()) == 11 && (genParticle.mother()->pdgId() == 23 || fabs(genParticle.mother()->pdgId()) == 24) ){ // must be ele, mother is Z or W+/W-, might need to add Tau mother (W->Tau->ele)
+    //bool ele_Matched = false;
+    bool ele_Promt = false;
 
-                    math::XYZVector GenPartMomentum = genParticle.momentum();
-                    double dr_match = reco::deltaR(GenPartMomentum, EleMomentum);
-                        
-                    if( ((genParticle.pdgId() == 11 && ele.charge() == -1) || (genParticle.pdgId() == -11 && ele.charge() == 1)) && dr_match < 0.10 ){
-                                            
-                        ele_Promt = true;
-                        break;
-                                
-                    }
-                }        
-            } 
-        }else{
-            continue;
-        }
+    float ele_track_source_dz = 0;
+    float ele_track_source_dxy = 0;
 
-        //if(ele_Promt == false){
-        //    ele_nonPromt = true;
-        //} 
-            
-        // Electron timing information check (whether electron signal track can be found in general track collection, for 99% we can.)
-        int ele_SigTrkIdx = -1; // used for IDing the matched electron track from general track collection //
-        int eletrkIdx = -1;
+    ele_track_source_dz = fabs(ele.gsfTrack()->dz(Vtx_chosen.position()));
+    ele_track_source_dxy = fabs(ele.gsfTrack()->dxy(Vtx_chosen.position()));
 
-        math::XYZVector EleSigTrackMomentumAtVtx = ele.gsfTrack()->momentum(); // not sure if correct, but works
-        double EleSigTrackEtaAtVtx = ele.gsfTrack()->eta();
-
-        for (const auto& trackGen : *GenRecTrackHandle) { // looping over tracks to find the match to electron track
+    if( ele.pt()> 10 && fabs(ele.eta()) < 2.4 && ele_track_source_dz < max_dz_vtx_cut && ele_track_source_dxy < max_dxy_vtx_cut ){ // selecting "good" RECO electrons
         
-            eletrkIdx++;
-            double dr = reco::deltaR(trackGen.momentum(), EleSigTrackMomentumAtVtx); // should do a pT cut aswell
+        math::XYZVector EleMomentum = ele.momentum(); 
+        
+        for(const auto& genParticle : GenPartColl){
+            
+            math::XYZVector GenPartMomentum = genParticle.momentum();
+            double dr_match = reco::deltaR(GenPartMomentum, EleMomentum);
 
-            if (dr < min_dR_cut){
-                ele_SigTrkIdx = eletrkIdx;
+            if( ((genParticle.pdgId() == 11 && ele.charge() == -1) || (genParticle.pdgId() == -11 && ele.charge() == 1)) && dr_match < 0.10 ){ // dR match check and charge match check
+                                        
+                //ele_Matched = true; // GEN-RECO electrons only pass here
+
+                if(genParticle.mother()->pdgId() == 23 || fabs(genParticle.mother()->pdgId()) == 24 || fabs(genParticle.mother()->pdgId()) == 15){ // check if ele mother is Z,W or tau (W->tau->ele decays, as these still should be quite isolated)
+                    ele_Promt = true; // ele is defined as promt
+                    break;
+                }else{
+                    break; // ele is defined as non-promt (ele_Promt = false)
+                }
+                            
+            }else{
+                continue;
+            }        
+        } 
+    }else{
+        continue;
+    }
+
+        
+    // Electron timing information check (whether electron signal track can be found in general track collection, for 99% we can.)
+    int ele_SigTrkIdx = -1; // used for IDing the matched electron track from general track collection //
+    int eletrkIdx = -1;
+
+    math::XYZVector EleSigTrackMomentumAtVtx = ele.gsfTrack()->momentum(); // not sure if correct, but works
+    double EleSigTrackEtaAtVtx = ele.gsfTrack()->eta();
+
+    for (const auto& trackGen : *GenRecTrackHandle) { // looping over tracks to find the match to electron track
+    
+        eletrkIdx++;
+        double dr = reco::deltaR(trackGen.momentum(), EleSigTrackMomentumAtVtx); // should do a pT cut aswell
+
+        if (dr < min_dR_cut){
+            ele_SigTrkIdx = eletrkIdx;
+        }
+    }
+
+    reco::TrackRef ele_sigTrkRef; // matched electron track ref variable
+    double ele_sigTrkTime = -1; // electron signal track MTD information
+    double ele_sigTrkTimeErr = -1;
+    double ele_sigTrkMtdMva = -1;
+
+
+    if (ele_SigTrkIdx >= 0) { // if we found a track match, we add MTD timing information for this matched track and do the isolation check
+
+        const reco::TrackRef ele_sigTrkRef(GenRecTrackHandle, ele_SigTrkIdx);
+
+        bool Barrel_ele = ele.isEB(); // for track pT/dz cuts (Different for EB and EE in TDR)
+        
+        float min_pt_cut = Barrel_ele ? min_pt_cut_EB : min_pt_cut_EE;
+        float max_dz_cut = Barrel_ele ? max_dz_cut_EB : max_dz_cut_EE;
+
+        
+
+        ele_sigTrkTime = t0Pid[ele_sigTrkRef];
+        ele_sigTrkTimeErr = Sigmat0Pid[ele_sigTrkRef];
+        ele_sigTrkMtdMva = mtdQualMVA[ele_sigTrkRef];
+        ele_sigTrkTimeErr = (ele_sigTrkMtdMva > min_track_mtd_mva_cut)? ele_sigTrkTimeErr: -1; // track MTD MVA cut/check
+
+        if(ele_Promt){ 
+            // For signal (promt)
+            if(Barrel_ele){
+                meEle_pt_tot_Sig_EB_->Fill(ele.pt()); // All selected electron information for efficiency plots later
+                meEle_eta_tot_Sig_EB_->Fill(ele.eta());
+                meEle_phi_tot_Sig_EB_->Fill(ele.phi());
+            }else{
+                meEle_pt_tot_Sig_EE_->Fill(ele.pt()); // All selected electron information for efficiency plots later
+                meEle_eta_tot_Sig_EE_->Fill(ele.eta());
+                meEle_phi_tot_Sig_EE_->Fill(ele.phi());
+            }
+        }else{
+            // For background (non-promt)
+            if(Barrel_ele){
+                meEle_pt_tot_Bkg_EB_->Fill(ele.pt()); 
+                meEle_eta_tot_Bkg_EB_->Fill(ele.eta());
+                meEle_phi_tot_Bkg_EB_->Fill(ele.phi());
+            }else{
+                meEle_pt_tot_Bkg_EE_->Fill(ele.pt()); 
+                meEle_eta_tot_Bkg_EE_->Fill(ele.eta());
+                meEle_phi_tot_Bkg_EE_->Fill(ele.phi());
+            }
+        }
+        
+                        
+
+        int N_tracks_noMTD = 0; // values for no MTD case
+        double pT_sum_noMTD = 0;
+        double rel_pT_sum_noMTD = 0;                
+        std::vector<int> N_tracks_MTD{0,0,0,0,0,0,0}; // values for MTD case - 7 timing cuts
+        std::vector<double> pT_sum_MTD{0,0,0,0,0,0,0};
+        std::vector<double> rel_pT_sum_MTD{0,0,0,0,0,0,0};
+        
+        int general_index = 0;
+        for(const auto& trackGen : *GenRecTrackHandle){
+            
+            const reco::TrackRef trackref_general(GenRecTrackHandle, general_index);
+            general_index++;
+
+            
+            if (trackGen.pt() < min_pt_cut ){ // track pT cut
+                continue;
+            }
+
+            if (fabs(trackGen.vz() - ele.gsfTrack()->vz()) > max_dz_cut ){ // general track vs signal track dz cut
+                continue;
+            }
+
+            if(track_match_PV_){
+                if(Vtx_chosen.trackWeight(trackref_general) < 0.5){ // cut for general track matching to PV
+                    continue;
+                }
+            }
+            
+            double dr_check = reco::deltaR(trackGen.momentum(), EleSigTrackMomentumAtVtx);
+            double deta = fabs(trackGen.eta() - EleSigTrackEtaAtVtx);
+
+            if(dr_check > min_dR_cut && dr_check < max_dR_cut && deta > min_strip_cut){ // checking if the track is inside isolation cone
+        
+                ++N_tracks_noMTD;
+                pT_sum_noMTD += trackGen.pt();
+            }else{
+                continue;
+            }
+
+            // checking the MTD timing cuts                   
+                
+            double TrkMTDTime = t0Pid[trackref_general]; // MTD timing info for particular track fron general tracks
+            double TrkMTDTimeErr = Sigmat0Pid[trackref_general];
+            double TrkMTDMva = mtdQualMVA[trackref_general];
+            TrkMTDTimeErr = (TrkMTDMva > min_track_mtd_mva_cut)? TrkMTDTimeErr: -1; // track MTD MVA cut/check
+
+            if(dt_sig_track_){
+
+                double dt_sigTrk = 0; // dt regular track vs signal track (absolute value) 
+                
+                if(TrkMTDTimeErr > 0 && ele_sigTrkTimeErr > 0){
+
+                    dt_sigTrk = fabs(TrkMTDTime - ele_sigTrkTime);
+                    //dt_sigTrk_signif = dt_sigTrk/std::sqrt(TrkMTDTimeErr*TrkMTDTimeErr + ele_sigTrkTimeErr*ele_sigTrkTimeErr); 
+
+                    for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
+                        if(dt_sigTrk < max_dt_track_cut[i]){
+                            N_tracks_MTD[i] = N_tracks_MTD[i] + 1;
+                            pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();
+                        }
+                    }
+                }else{ // if there is no error for MTD information, we count the MTD isolation case same as noMTD
+                    for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
+                        N_tracks_MTD[i] = N_tracks_MTD[i] + 1; // N_tracks_noMTD
+                        pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();  // old bugged value was pT_sum_noMTD
+                    }
+                }
+            }
+
+            if(dt_sig_vtx_){
+
+                double dt_vtx = 0;  // dt regular track vs vtx
+
+                if(TrkMTDTimeErr > 0 && Vtx_chosen.tError() > 0){
+
+                    dt_vtx = TrkMTDTime - Vtx_chosen.t();
+                    //dt_vtx_signif = dt_vtx/std::sqrt(TrkMTDTimeErr*TrkMTDTimeErr + Vtx_chosen.tError()*Vtx_chosen.tError());
+
+                    for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
+                        if(dt_vtx < max_dt_vtx_cut[i]){
+                            N_tracks_MTD[i] = N_tracks_MTD[i] + 1;
+                            pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();
+                        }
+                    }
+                }else{
+                    for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
+                        N_tracks_MTD[i] = N_tracks_MTD[i] + 1; // N_tracks_noMTD
+                        pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();  // pT_sum_noMTD
+                    }
+                }
             }
         }
 
-        reco::TrackRef ele_sigTrkRef; // matched electron track ref variable
-        double ele_sigTrkTime = -1; // electron signal track MTD information
-        double ele_sigTrkTimeErr = -1;
-        double ele_sigTrkMtdMva = -1;
+        rel_pT_sum_noMTD = pT_sum_noMTD/ele.gsfTrack()->pt(); // rel_ch_iso calculation
+        for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
+            rel_pT_sum_MTD[i] = pT_sum_MTD[i]/ele.gsfTrack()->pt(); 
+        }
 
+        // defining vectors for more efficient hist filling
+        // Promt part
+        std::vector<MonitorElement*> Ntracks_EB_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_};
+        std::vector<MonitorElement*> ch_iso_EB_list_Sig = {meEleISO_chIso_MTD_1_Sig_EB_,meEleISO_chIso_MTD_2_Sig_EB_,meEleISO_chIso_MTD_3_Sig_EB_,meEleISO_chIso_MTD_4_Sig_EB_,meEleISO_chIso_MTD_5_Sig_EB_,meEleISO_chIso_MTD_6_Sig_EB_,meEleISO_chIso_MTD_7_Sig_EB_};
+        std::vector<MonitorElement*> rel_ch_iso_EB_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EB_,meEleISO_rel_chIso_MTD_2_Sig_EB_,meEleISO_rel_chIso_MTD_3_Sig_EB_,meEleISO_rel_chIso_MTD_4_Sig_EB_,meEleISO_rel_chIso_MTD_5_Sig_EB_,meEleISO_rel_chIso_MTD_6_Sig_EB_,meEleISO_rel_chIso_MTD_7_Sig_EB_};
 
-        if (ele_SigTrkIdx >= 0) { // if we found a track match, we add MTD timing information for this matched track and do the isolation check
-    
-            const reco::TrackRef ele_sigTrkRef(GenRecTrackHandle, ele_SigTrkIdx);
+        std::vector<MonitorElement*> Ntracks_EE_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EE_,meEleISO_Ntracks_MTD_2_Sig_EE_,meEleISO_Ntracks_MTD_3_Sig_EE_,meEleISO_Ntracks_MTD_4_Sig_EE_,meEleISO_Ntracks_MTD_5_Sig_EE_,meEleISO_Ntracks_MTD_6_Sig_EE_,meEleISO_Ntracks_MTD_7_Sig_EE_};
+        std::vector<MonitorElement*> ch_iso_EE_list_Sig = {meEleISO_chIso_MTD_1_Sig_EE_,meEleISO_chIso_MTD_2_Sig_EE_,meEleISO_chIso_MTD_3_Sig_EE_,meEleISO_chIso_MTD_4_Sig_EE_,meEleISO_chIso_MTD_5_Sig_EE_,meEleISO_chIso_MTD_6_Sig_EE_,meEleISO_chIso_MTD_7_Sig_EE_};
+        std::vector<MonitorElement*> rel_ch_iso_EE_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EE_,meEleISO_rel_chIso_MTD_2_Sig_EE_,meEleISO_rel_chIso_MTD_3_Sig_EE_,meEleISO_rel_chIso_MTD_4_Sig_EE_,meEleISO_rel_chIso_MTD_5_Sig_EE_,meEleISO_rel_chIso_MTD_6_Sig_EE_,meEleISO_rel_chIso_MTD_7_Sig_EE_};
 
-            bool Barrel_ele = ele.isEB(); // for track pT/dz cuts (Different for EB and EE in TDR)
-            
-            float min_pt_cut = Barrel_ele ? min_pt_cut_EB : min_pt_cut_EE;
-            float max_dz_cut = Barrel_ele ? max_dz_cut_EB : max_dz_cut_EE;
+        std::vector<MonitorElement*> Ele_pT_MTD_EB_list_Sig = {meEle_pt_MTD_1_Sig_EB_,meEle_pt_MTD_2_Sig_EB_,meEle_pt_MTD_3_Sig_EB_,meEle_pt_MTD_4_Sig_EB_,meEle_pt_MTD_5_Sig_EB_,meEle_pt_MTD_6_Sig_EB_,meEle_pt_MTD_7_Sig_EB_};
+        std::vector<MonitorElement*> Ele_eta_MTD_EB_list_Sig = {meEle_eta_MTD_1_Sig_EB_,meEle_eta_MTD_2_Sig_EB_,meEle_eta_MTD_3_Sig_EB_,meEle_eta_MTD_4_Sig_EB_,meEle_eta_MTD_5_Sig_EB_,meEle_eta_MTD_6_Sig_EB_,meEle_eta_MTD_7_Sig_EB_};
+        std::vector<MonitorElement*> Ele_phi_MTD_EB_list_Sig = {meEle_phi_MTD_1_Sig_EB_,meEle_phi_MTD_2_Sig_EB_,meEle_phi_MTD_3_Sig_EB_,meEle_phi_MTD_4_Sig_EB_,meEle_phi_MTD_5_Sig_EB_,meEle_phi_MTD_6_Sig_EB_,meEle_phi_MTD_7_Sig_EB_};
 
-            
-    
-            ele_sigTrkTime = t0Pid[ele_sigTrkRef];
-            ele_sigTrkTimeErr = Sigmat0Pid[ele_sigTrkRef];
-            ele_sigTrkMtdMva = mtdQualMVA[ele_sigTrkRef];
-            ele_sigTrkTimeErr = (ele_sigTrkMtdMva > min_track_mtd_mva_cut)? ele_sigTrkTimeErr: -1; // track MTD MVA cut/check
+        std::vector<MonitorElement*> Ele_pT_MTD_EE_list_Sig = {meEle_pt_MTD_1_Sig_EE_,meEle_pt_MTD_2_Sig_EE_,meEle_pt_MTD_3_Sig_EE_,meEle_pt_MTD_4_Sig_EE_,meEle_pt_MTD_5_Sig_EE_,meEle_pt_MTD_6_Sig_EE_,meEle_pt_MTD_7_Sig_EE_};
+        std::vector<MonitorElement*> Ele_eta_MTD_EE_list_Sig = {meEle_eta_MTD_1_Sig_EE_,meEle_eta_MTD_2_Sig_EE_,meEle_eta_MTD_3_Sig_EE_,meEle_eta_MTD_4_Sig_EE_,meEle_eta_MTD_5_Sig_EE_,meEle_eta_MTD_6_Sig_EE_,meEle_eta_MTD_7_Sig_EE_};
+        std::vector<MonitorElement*> Ele_phi_MTD_EE_list_Sig = {meEle_phi_MTD_1_Sig_EE_,meEle_phi_MTD_2_Sig_EE_,meEle_phi_MTD_3_Sig_EE_,meEle_phi_MTD_4_Sig_EE_,meEle_phi_MTD_5_Sig_EE_,meEle_phi_MTD_6_Sig_EE_,meEle_phi_MTD_7_Sig_EE_};
 
-            if(ele_Promt){ 
-                // For signal (promt)
-                if(Barrel_ele){
-                    meEle_pt_tot_Sig_EB_->Fill(ele.pt()); // All selected electron information for efficiency plots later
-                    meEle_eta_tot_Sig_EB_->Fill(ele.eta());
-                    meEle_phi_tot_Sig_EB_->Fill(ele.phi());
-                }else{
-                    meEle_pt_tot_Sig_EE_->Fill(ele.pt()); // All selected electron information for efficiency plots later
-                    meEle_eta_tot_Sig_EE_->Fill(ele.eta());
-                    meEle_phi_tot_Sig_EE_->Fill(ele.phi());
-                }
-            }else{
-                // For background (non-promt)
-                if(Barrel_ele){
-                    meEle_pt_tot_Bkg_EB_->Fill(ele.pt()); 
-                    meEle_eta_tot_Bkg_EB_->Fill(ele.eta());
-                    meEle_phi_tot_Bkg_EB_->Fill(ele.phi());
-                }else{
-                    meEle_pt_tot_Bkg_EE_->Fill(ele.pt()); 
-                    meEle_eta_tot_Bkg_EE_->Fill(ele.eta());
-                    meEle_phi_tot_Bkg_EE_->Fill(ele.phi());
-                }
-            }
-            
-                            
+        // Non-promt part
+        std::vector<MonitorElement*> Ntracks_EB_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EB_,meEleISO_Ntracks_MTD_2_Bkg_EB_,meEleISO_Ntracks_MTD_3_Bkg_EB_,meEleISO_Ntracks_MTD_4_Bkg_EB_,meEleISO_Ntracks_MTD_5_Bkg_EB_,meEleISO_Ntracks_MTD_6_Bkg_EB_,meEleISO_Ntracks_MTD_7_Bkg_EB_};
+        std::vector<MonitorElement*> ch_iso_EB_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EB_,meEleISO_chIso_MTD_2_Bkg_EB_,meEleISO_chIso_MTD_3_Bkg_EB_,meEleISO_chIso_MTD_4_Bkg_EB_,meEleISO_chIso_MTD_5_Bkg_EB_,meEleISO_chIso_MTD_6_Bkg_EB_,meEleISO_chIso_MTD_7_Bkg_EB_};
+        std::vector<MonitorElement*> rel_ch_iso_EB_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EB_,meEleISO_rel_chIso_MTD_2_Bkg_EB_,meEleISO_rel_chIso_MTD_3_Bkg_EB_,meEleISO_rel_chIso_MTD_4_Bkg_EB_,meEleISO_rel_chIso_MTD_5_Bkg_EB_,meEleISO_rel_chIso_MTD_6_Bkg_EB_,meEleISO_rel_chIso_MTD_7_Bkg_EB_};
 
-            int N_tracks_noMTD = 0; // values for no MTD case
-            double pT_sum_noMTD = 0;
-            double rel_pT_sum_noMTD = 0;                
-            std::vector<int> N_tracks_MTD{0,0,0,0,0,0,0}; // values for MTD case - 7 timing cuts
-            std::vector<double> pT_sum_MTD{0,0,0,0,0,0,0};
-            std::vector<double> rel_pT_sum_MTD{0,0,0,0,0,0,0};
-            
-            int general_index = 0;
-            for(const auto& trackGen : *GenRecTrackHandle){
-                
-                const reco::TrackRef trackref_general(GenRecTrackHandle, general_index);
-                general_index++;
+        std::vector<MonitorElement*> Ntracks_EE_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EE_,meEleISO_Ntracks_MTD_2_Bkg_EE_,meEleISO_Ntracks_MTD_3_Bkg_EE_,meEleISO_Ntracks_MTD_4_Bkg_EE_,meEleISO_Ntracks_MTD_5_Bkg_EE_,meEleISO_Ntracks_MTD_6_Bkg_EE_,meEleISO_Ntracks_MTD_7_Bkg_EE_};
+        std::vector<MonitorElement*> ch_iso_EE_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EE_,meEleISO_chIso_MTD_2_Bkg_EE_,meEleISO_chIso_MTD_3_Bkg_EE_,meEleISO_chIso_MTD_4_Bkg_EE_,meEleISO_chIso_MTD_5_Bkg_EE_,meEleISO_chIso_MTD_6_Bkg_EE_,meEleISO_chIso_MTD_7_Bkg_EE_};
+        std::vector<MonitorElement*> rel_ch_iso_EE_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EE_,meEleISO_rel_chIso_MTD_2_Bkg_EE_,meEleISO_rel_chIso_MTD_3_Bkg_EE_,meEleISO_rel_chIso_MTD_4_Bkg_EE_,meEleISO_rel_chIso_MTD_5_Bkg_EE_,meEleISO_rel_chIso_MTD_6_Bkg_EE_,meEleISO_rel_chIso_MTD_7_Bkg_EE_};
 
-                
-                if (trackGen.pt() < min_pt_cut ){ // track pT cut
-                    continue;
+        std::vector<MonitorElement*> Ele_pT_MTD_EB_list_Bkg = {meEle_pt_MTD_1_Bkg_EB_,meEle_pt_MTD_2_Bkg_EB_,meEle_pt_MTD_3_Bkg_EB_,meEle_pt_MTD_4_Bkg_EB_,meEle_pt_MTD_5_Bkg_EB_,meEle_pt_MTD_6_Bkg_EB_,meEle_pt_MTD_7_Bkg_EB_};
+        std::vector<MonitorElement*> Ele_eta_MTD_EB_list_Bkg = {meEle_eta_MTD_1_Bkg_EB_,meEle_eta_MTD_2_Bkg_EB_,meEle_eta_MTD_3_Bkg_EB_,meEle_eta_MTD_4_Bkg_EB_,meEle_eta_MTD_5_Bkg_EB_,meEle_eta_MTD_6_Bkg_EB_,meEle_eta_MTD_7_Bkg_EB_};
+        std::vector<MonitorElement*> Ele_phi_MTD_EB_list_Bkg = {meEle_phi_MTD_1_Bkg_EB_,meEle_phi_MTD_2_Bkg_EB_,meEle_phi_MTD_3_Bkg_EB_,meEle_phi_MTD_4_Bkg_EB_,meEle_phi_MTD_5_Bkg_EB_,meEle_phi_MTD_6_Bkg_EB_,meEle_phi_MTD_7_Bkg_EB_};
+
+        std::vector<MonitorElement*> Ele_pT_MTD_EE_list_Bkg = {meEle_pt_MTD_1_Bkg_EE_,meEle_pt_MTD_2_Bkg_EE_,meEle_pt_MTD_3_Bkg_EE_,meEle_pt_MTD_4_Bkg_EE_,meEle_pt_MTD_5_Bkg_EE_,meEle_pt_MTD_6_Bkg_EE_,meEle_pt_MTD_7_Bkg_EE_};
+        std::vector<MonitorElement*> Ele_eta_MTD_EE_list_Bkg = {meEle_eta_MTD_1_Bkg_EE_,meEle_eta_MTD_2_Bkg_EE_,meEle_eta_MTD_3_Bkg_EE_,meEle_eta_MTD_4_Bkg_EE_,meEle_eta_MTD_5_Bkg_EE_,meEle_eta_MTD_6_Bkg_EE_,meEle_eta_MTD_7_Bkg_EE_};
+        std::vector<MonitorElement*> Ele_phi_MTD_EE_list_Bkg = {meEle_phi_MTD_1_Bkg_EE_,meEle_phi_MTD_2_Bkg_EE_,meEle_phi_MTD_3_Bkg_EE_,meEle_phi_MTD_4_Bkg_EE_,meEle_phi_MTD_5_Bkg_EE_,meEle_phi_MTD_6_Bkg_EE_,meEle_phi_MTD_7_Bkg_EE_};
+
+        if(ele_Promt){ // promt part
+            if(Barrel_ele){
+
+                meEleISO_Ntracks_Sig_EB_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
+                meEleISO_chIso_Sig_EB_->Fill(pT_sum_noMTD);
+                meEleISO_rel_chIso_Sig_EB_->Fill(rel_pT_sum_noMTD);
+
+                for(long unsigned int j = 0 ; j < Ntracks_EB_list_Sig.size(); j++){
+                    Ntracks_EB_list_Sig[j]->Fill(N_tracks_MTD[j]);
+                    ch_iso_EB_list_Sig[j]->Fill(pT_sum_MTD[j]);
+                    rel_ch_iso_EB_list_Sig[j]->Fill(rel_pT_sum_MTD[j]);
                 }
 
-                if (fabs(trackGen.vz() - ele.gsfTrack()->vz()) > max_dz_cut ){ // general track vs signal track dz cut
-                    continue;
+                if(rel_pT_sum_noMTD < rel_iso_cut_ ){ // filling hists for iso efficiency calculations
+                    meEle_pt_noMTD_Sig_EB_->Fill(ele.pt());
+                    meEle_eta_noMTD_Sig_EB_->Fill(ele.eta());
+                    meEle_phi_noMTD_Sig_EB_->Fill(ele.phi());
                 }
 
-                if(track_match_PV_){
-                    if(Vtx_chosen.trackWeight(trackref_general) < 0.5){ // cut for general track matching to PV
-                        continue;
-                    }
-                }
-                
-                double dr_check = reco::deltaR(trackGen.momentum(), EleSigTrackMomentumAtVtx);
-                double deta = fabs(trackGen.eta() - EleSigTrackEtaAtVtx);
-
-                if(dr_check > min_dR_cut && dr_check < max_dR_cut && deta > min_strip_cut){ // checking if the track is inside isolation cone
-            
-                    ++N_tracks_noMTD;
-                    pT_sum_noMTD += trackGen.pt();
-                }else{
-                    continue;
+                for(long unsigned int k = 0 ; k < Ntracks_EB_list_Sig.size(); k++){
+                    if(rel_pT_sum_MTD[k] < rel_iso_cut_){
+                        Ele_pT_MTD_EB_list_Sig[k]->Fill(ele.pt());
+                        Ele_eta_MTD_EB_list_Sig[k]->Fill(ele.eta());
+                        Ele_phi_MTD_EB_list_Sig[k]->Fill(ele.phi());
+                    }   
                 }
 
-                // checking the MTD timing cuts                   
-                    
-                double TrkMTDTime = t0Pid[trackref_general]; // MTD timing info for particular track fron general tracks
-                double TrkMTDTimeErr = Sigmat0Pid[trackref_general];
-                double TrkMTDMva = mtdQualMVA[trackref_general];
-                TrkMTDTimeErr = (TrkMTDMva > min_track_mtd_mva_cut)? TrkMTDTimeErr: -1; // track MTD MVA cut/check
+            }else{ // for endcap
 
-                if(dt_sig_track_){
+                meEleISO_Ntracks_Sig_EE_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
+                meEleISO_chIso_Sig_EE_->Fill(pT_sum_noMTD);
+                meEleISO_rel_chIso_Sig_EE_->Fill(rel_pT_sum_noMTD);
 
-                    double dt_sigTrk = 0; // dt regular track vs signal track (absolute value) 
-                    
-                    if(TrkMTDTimeErr > 0 && ele_sigTrkTimeErr > 0){
-
-                        dt_sigTrk = fabs(TrkMTDTime - ele_sigTrkTime);
-                        //dt_sigTrk_signif = dt_sigTrk/std::sqrt(TrkMTDTimeErr*TrkMTDTimeErr + ele_sigTrkTimeErr*ele_sigTrkTimeErr); 
-
-                        for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                            if(dt_sigTrk < max_dt_track_cut[i]){
-                                N_tracks_MTD[i] = N_tracks_MTD[i] + 1;
-                                pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();
-                            }
-                        }
-                    }else{ // if there is no error for MTD information, we count the MTD isolation case same as noMTD
-                        for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                            N_tracks_MTD[i] = N_tracks_MTD[i] + 1; // N_tracks_noMTD
-                            pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();  // old bugged value was pT_sum_noMTD
-                        }
-                    }
+                for(long unsigned int j = 0 ; j < Ntracks_EE_list_Sig.size(); j++){
+                    Ntracks_EE_list_Sig[j]->Fill(N_tracks_MTD[j]);
+                    ch_iso_EE_list_Sig[j]->Fill(pT_sum_MTD[j]);
+                    rel_ch_iso_EE_list_Sig[j]->Fill(rel_pT_sum_MTD[j]);
                 }
 
-                if(dt_sig_vtx_ && vertex_4D_){
-
-                    double dt_vtx = 0;  // dt regular track vs vtx
-
-                    if(TrkMTDTimeErr > 0 && Vtx_chosen.tError() > 0){
-
-                        dt_vtx = TrkMTDTime - Vtx_chosen.t();
-                        //dt_vtx_signif = dt_vtx/std::sqrt(TrkMTDTimeErr*TrkMTDTimeErr + Vtx_chosen.tError()*Vtx_chosen.tError());
-
-                        for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                            if(dt_vtx < max_dt_vtx_cut[i]){
-                                N_tracks_MTD[i] = N_tracks_MTD[i] + 1;
-                                pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();
-                            }
-                        }
-                    }else{
-                        for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                            N_tracks_MTD[i] = N_tracks_MTD[i] + 1; // N_tracks_noMTD
-                            pT_sum_MTD[i] = pT_sum_MTD[i] + trackGen.pt();  // pT_sum_noMTD
-                        }
-                    }
+                if(rel_pT_sum_noMTD < rel_iso_cut_ ){ // filling hists for iso efficiency calculations
+                    meEle_pt_noMTD_Sig_EE_->Fill(ele.pt());
+                    meEle_eta_noMTD_Sig_EE_->Fill(ele.eta());
+                    meEle_phi_noMTD_Sig_EE_->Fill(ele.phi());
                 }
-            }
 
-            rel_pT_sum_noMTD = pT_sum_noMTD/ele.gsfTrack()->pt(); // rel_ch_iso calculation
-            for(long unsigned int i = 0; i < N_tracks_MTD.size() ; i++){
-                rel_pT_sum_MTD[i] = pT_sum_MTD[i]/ele.gsfTrack()->pt(); 
-            }
+                for(long unsigned int k = 0 ; k < Ntracks_EE_list_Sig.size(); k++){
+                    if(rel_pT_sum_MTD[k] < rel_iso_cut_){
+                        Ele_pT_MTD_EE_list_Sig[k]->Fill(ele.pt());
+                        Ele_eta_MTD_EE_list_Sig[k]->Fill(ele.eta());
+                        Ele_phi_MTD_EE_list_Sig[k]->Fill(ele.phi());
+                    }   
+                }
+            } 
+        }else{ // non-promt part
+            if(Barrel_ele){
 
-            // defining vectors for more efficient hist filling
-            // Promt part
-            std::vector<MonitorElement*> Ntracks_EB_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_};
-            std::vector<MonitorElement*> ch_iso_EB_list_Sig = {meEleISO_chIso_MTD_1_Sig_EB_,meEleISO_chIso_MTD_2_Sig_EB_,meEleISO_chIso_MTD_3_Sig_EB_,meEleISO_chIso_MTD_4_Sig_EB_,meEleISO_chIso_MTD_5_Sig_EB_,meEleISO_chIso_MTD_6_Sig_EB_,meEleISO_chIso_MTD_7_Sig_EB_};
-            std::vector<MonitorElement*> rel_ch_iso_EB_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EB_,meEleISO_rel_chIso_MTD_2_Sig_EB_,meEleISO_rel_chIso_MTD_3_Sig_EB_,meEleISO_rel_chIso_MTD_4_Sig_EB_,meEleISO_rel_chIso_MTD_5_Sig_EB_,meEleISO_rel_chIso_MTD_6_Sig_EB_,meEleISO_rel_chIso_MTD_7_Sig_EB_};
+                meEleISO_Ntracks_Bkg_EB_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
+                meEleISO_chIso_Bkg_EB_->Fill(pT_sum_noMTD);
+                meEleISO_rel_chIso_Bkg_EB_->Fill(rel_pT_sum_noMTD);
 
-            std::vector<MonitorElement*> Ntracks_EE_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EE_,meEleISO_Ntracks_MTD_2_Sig_EE_,meEleISO_Ntracks_MTD_3_Sig_EE_,meEleISO_Ntracks_MTD_4_Sig_EE_,meEleISO_Ntracks_MTD_5_Sig_EE_,meEleISO_Ntracks_MTD_6_Sig_EE_,meEleISO_Ntracks_MTD_7_Sig_EE_};
-            std::vector<MonitorElement*> ch_iso_EE_list_Sig = {meEleISO_chIso_MTD_1_Sig_EE_,meEleISO_chIso_MTD_2_Sig_EE_,meEleISO_chIso_MTD_3_Sig_EE_,meEleISO_chIso_MTD_4_Sig_EE_,meEleISO_chIso_MTD_5_Sig_EE_,meEleISO_chIso_MTD_6_Sig_EE_,meEleISO_chIso_MTD_7_Sig_EE_};
-            std::vector<MonitorElement*> rel_ch_iso_EE_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EE_,meEleISO_rel_chIso_MTD_2_Sig_EE_,meEleISO_rel_chIso_MTD_3_Sig_EE_,meEleISO_rel_chIso_MTD_4_Sig_EE_,meEleISO_rel_chIso_MTD_5_Sig_EE_,meEleISO_rel_chIso_MTD_6_Sig_EE_,meEleISO_rel_chIso_MTD_7_Sig_EE_};
+                for(long unsigned int j = 0 ; j < Ntracks_EB_list_Bkg.size(); j++){
+                    Ntracks_EB_list_Bkg[j]->Fill(N_tracks_MTD[j]);
+                    ch_iso_EB_list_Bkg[j]->Fill(pT_sum_MTD[j]);
+                    rel_ch_iso_EB_list_Bkg[j]->Fill(rel_pT_sum_MTD[j]);
+                }
 
-            std::vector<MonitorElement*> Ele_pT_MTD_EB_list_Sig = {meEle_pt_MTD_1_Sig_EB_,meEle_pt_MTD_2_Sig_EB_,meEle_pt_MTD_3_Sig_EB_,meEle_pt_MTD_4_Sig_EB_,meEle_pt_MTD_5_Sig_EB_,meEle_pt_MTD_6_Sig_EB_,meEle_pt_MTD_7_Sig_EB_};
-            std::vector<MonitorElement*> Ele_eta_MTD_EB_list_Sig = {meEle_eta_MTD_1_Sig_EB_,meEle_eta_MTD_2_Sig_EB_,meEle_eta_MTD_3_Sig_EB_,meEle_eta_MTD_4_Sig_EB_,meEle_eta_MTD_5_Sig_EB_,meEle_eta_MTD_6_Sig_EB_,meEle_eta_MTD_7_Sig_EB_};
-            std::vector<MonitorElement*> Ele_phi_MTD_EB_list_Sig = {meEle_phi_MTD_1_Sig_EB_,meEle_phi_MTD_2_Sig_EB_,meEle_phi_MTD_3_Sig_EB_,meEle_phi_MTD_4_Sig_EB_,meEle_phi_MTD_5_Sig_EB_,meEle_phi_MTD_6_Sig_EB_,meEle_phi_MTD_7_Sig_EB_};
+                if(rel_pT_sum_noMTD < rel_iso_cut_ ){ // filling hists for iso efficiency calculations
+                    meEle_pt_noMTD_Bkg_EB_->Fill(ele.pt());
+                    meEle_eta_noMTD_Bkg_EB_->Fill(ele.eta());
+                    meEle_phi_noMTD_Bkg_EB_->Fill(ele.phi());
+                }
 
-            std::vector<MonitorElement*> Ele_pT_MTD_EE_list_Sig = {meEle_pt_MTD_1_Sig_EE_,meEle_pt_MTD_2_Sig_EE_,meEle_pt_MTD_3_Sig_EE_,meEle_pt_MTD_4_Sig_EE_,meEle_pt_MTD_5_Sig_EE_,meEle_pt_MTD_6_Sig_EE_,meEle_pt_MTD_7_Sig_EE_};
-            std::vector<MonitorElement*> Ele_eta_MTD_EE_list_Sig = {meEle_eta_MTD_1_Sig_EE_,meEle_eta_MTD_2_Sig_EE_,meEle_eta_MTD_3_Sig_EE_,meEle_eta_MTD_4_Sig_EE_,meEle_eta_MTD_5_Sig_EE_,meEle_eta_MTD_6_Sig_EE_,meEle_eta_MTD_7_Sig_EE_};
-            std::vector<MonitorElement*> Ele_phi_MTD_EE_list_Sig = {meEle_phi_MTD_1_Sig_EE_,meEle_phi_MTD_2_Sig_EE_,meEle_phi_MTD_3_Sig_EE_,meEle_phi_MTD_4_Sig_EE_,meEle_phi_MTD_5_Sig_EE_,meEle_phi_MTD_6_Sig_EE_,meEle_phi_MTD_7_Sig_EE_};
+                for(long unsigned int k = 0 ; k < Ntracks_EB_list_Bkg.size(); k++){
+                    if(rel_pT_sum_MTD[k] < rel_iso_cut_){
+                        Ele_pT_MTD_EB_list_Bkg[k]->Fill(ele.pt());
+                        Ele_eta_MTD_EB_list_Bkg[k]->Fill(ele.eta());
+                        Ele_phi_MTD_EB_list_Bkg[k]->Fill(ele.phi());
+                    }   
+                }
 
-            // Non-promt part
-            std::vector<MonitorElement*> Ntracks_EB_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EB_,meEleISO_Ntracks_MTD_2_Bkg_EB_,meEleISO_Ntracks_MTD_3_Bkg_EB_,meEleISO_Ntracks_MTD_4_Bkg_EB_,meEleISO_Ntracks_MTD_5_Bkg_EB_,meEleISO_Ntracks_MTD_6_Bkg_EB_,meEleISO_Ntracks_MTD_7_Bkg_EB_};
-            std::vector<MonitorElement*> ch_iso_EB_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EB_,meEleISO_chIso_MTD_2_Bkg_EB_,meEleISO_chIso_MTD_3_Bkg_EB_,meEleISO_chIso_MTD_4_Bkg_EB_,meEleISO_chIso_MTD_5_Bkg_EB_,meEleISO_chIso_MTD_6_Bkg_EB_,meEleISO_chIso_MTD_7_Bkg_EB_};
-            std::vector<MonitorElement*> rel_ch_iso_EB_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EB_,meEleISO_rel_chIso_MTD_2_Bkg_EB_,meEleISO_rel_chIso_MTD_3_Bkg_EB_,meEleISO_rel_chIso_MTD_4_Bkg_EB_,meEleISO_rel_chIso_MTD_5_Bkg_EB_,meEleISO_rel_chIso_MTD_6_Bkg_EB_,meEleISO_rel_chIso_MTD_7_Bkg_EB_};
+            }else{ // for endcap
+                meEleISO_Ntracks_Bkg_EE_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
+                meEleISO_chIso_Bkg_EE_->Fill(pT_sum_noMTD);
+                meEleISO_rel_chIso_Bkg_EE_->Fill(rel_pT_sum_noMTD);
 
-            std::vector<MonitorElement*> Ntracks_EE_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EE_,meEleISO_Ntracks_MTD_2_Bkg_EE_,meEleISO_Ntracks_MTD_3_Bkg_EE_,meEleISO_Ntracks_MTD_4_Bkg_EE_,meEleISO_Ntracks_MTD_5_Bkg_EE_,meEleISO_Ntracks_MTD_6_Bkg_EE_,meEleISO_Ntracks_MTD_7_Bkg_EE_};
-            std::vector<MonitorElement*> ch_iso_EE_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EE_,meEleISO_chIso_MTD_2_Bkg_EE_,meEleISO_chIso_MTD_3_Bkg_EE_,meEleISO_chIso_MTD_4_Bkg_EE_,meEleISO_chIso_MTD_5_Bkg_EE_,meEleISO_chIso_MTD_6_Bkg_EE_,meEleISO_chIso_MTD_7_Bkg_EE_};
-            std::vector<MonitorElement*> rel_ch_iso_EE_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EE_,meEleISO_rel_chIso_MTD_2_Bkg_EE_,meEleISO_rel_chIso_MTD_3_Bkg_EE_,meEleISO_rel_chIso_MTD_4_Bkg_EE_,meEleISO_rel_chIso_MTD_5_Bkg_EE_,meEleISO_rel_chIso_MTD_6_Bkg_EE_,meEleISO_rel_chIso_MTD_7_Bkg_EE_};
+                for(long unsigned int j = 0 ; j < Ntracks_EE_list_Bkg.size(); j++){
+                    Ntracks_EE_list_Bkg[j]->Fill(N_tracks_MTD[j]);
+                    ch_iso_EE_list_Bkg[j]->Fill(pT_sum_MTD[j]);
+                    rel_ch_iso_EE_list_Bkg[j]->Fill(rel_pT_sum_MTD[j]);
+                }
 
-            std::vector<MonitorElement*> Ele_pT_MTD_EB_list_Bkg = {meEle_pt_MTD_1_Bkg_EB_,meEle_pt_MTD_2_Bkg_EB_,meEle_pt_MTD_3_Bkg_EB_,meEle_pt_MTD_4_Bkg_EB_,meEle_pt_MTD_5_Bkg_EB_,meEle_pt_MTD_6_Bkg_EB_,meEle_pt_MTD_7_Bkg_EB_};
-            std::vector<MonitorElement*> Ele_eta_MTD_EB_list_Bkg = {meEle_eta_MTD_1_Bkg_EB_,meEle_eta_MTD_2_Bkg_EB_,meEle_eta_MTD_3_Bkg_EB_,meEle_eta_MTD_4_Bkg_EB_,meEle_eta_MTD_5_Bkg_EB_,meEle_eta_MTD_6_Bkg_EB_,meEle_eta_MTD_7_Bkg_EB_};
-            std::vector<MonitorElement*> Ele_phi_MTD_EB_list_Bkg = {meEle_phi_MTD_1_Bkg_EB_,meEle_phi_MTD_2_Bkg_EB_,meEle_phi_MTD_3_Bkg_EB_,meEle_phi_MTD_4_Bkg_EB_,meEle_phi_MTD_5_Bkg_EB_,meEle_phi_MTD_6_Bkg_EB_,meEle_phi_MTD_7_Bkg_EB_};
+                if(rel_pT_sum_noMTD < rel_iso_cut_ ){ // filling hists for iso efficiency calculations
+                    meEle_pt_noMTD_Bkg_EE_->Fill(ele.pt());
+                    meEle_eta_noMTD_Bkg_EE_->Fill(ele.eta());
+                    meEle_phi_noMTD_Bkg_EE_->Fill(ele.phi());
+                }
 
-            std::vector<MonitorElement*> Ele_pT_MTD_EE_list_Bkg = {meEle_pt_MTD_1_Bkg_EE_,meEle_pt_MTD_2_Bkg_EE_,meEle_pt_MTD_3_Bkg_EE_,meEle_pt_MTD_4_Bkg_EE_,meEle_pt_MTD_5_Bkg_EE_,meEle_pt_MTD_6_Bkg_EE_,meEle_pt_MTD_7_Bkg_EE_};
-            std::vector<MonitorElement*> Ele_eta_MTD_EE_list_Bkg = {meEle_eta_MTD_1_Bkg_EE_,meEle_eta_MTD_2_Bkg_EE_,meEle_eta_MTD_3_Bkg_EE_,meEle_eta_MTD_4_Bkg_EE_,meEle_eta_MTD_5_Bkg_EE_,meEle_eta_MTD_6_Bkg_EE_,meEle_eta_MTD_7_Bkg_EE_};
-            std::vector<MonitorElement*> Ele_phi_MTD_EE_list_Bkg = {meEle_phi_MTD_1_Bkg_EE_,meEle_phi_MTD_2_Bkg_EE_,meEle_phi_MTD_3_Bkg_EE_,meEle_phi_MTD_4_Bkg_EE_,meEle_phi_MTD_5_Bkg_EE_,meEle_phi_MTD_6_Bkg_EE_,meEle_phi_MTD_7_Bkg_EE_};
-
-            if(ele_Promt){ // promt part
-                if(Barrel_ele){
-
-                    meEleISO_Ntracks_Sig_EB_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
-                    meEleISO_chIso_Sig_EB_->Fill(pT_sum_noMTD);
-                    meEleISO_rel_chIso_Sig_EB_->Fill(rel_pT_sum_noMTD);
-
-                    for(long unsigned int j = 0 ; j < Ntracks_EB_list_Sig.size(); j++){
-                        Ntracks_EB_list_Sig[j]->Fill(N_tracks_MTD[j]);
-                        ch_iso_EB_list_Sig[j]->Fill(pT_sum_MTD[j]);
-                        rel_ch_iso_EB_list_Sig[j]->Fill(rel_pT_sum_MTD[j]);
-                    }
-
-                    if(rel_pT_sum_noMTD < 0.08 ){ // filling hists for iso efficiency calculations
-                        meEle_pt_noMTD_Sig_EB_->Fill(ele.pt());
-                        meEle_eta_noMTD_Sig_EB_->Fill(ele.eta());
-                        meEle_phi_noMTD_Sig_EB_->Fill(ele.phi());
-                    }
-
-                    for(long unsigned int k = 0 ; k < Ntracks_EB_list_Sig.size(); k++){
-                        if(rel_pT_sum_MTD[k] < 0.08){
-                            Ele_pT_MTD_EB_list_Sig[k]->Fill(ele.pt());
-                            Ele_eta_MTD_EB_list_Sig[k]->Fill(ele.eta());
-                            Ele_phi_MTD_EB_list_Sig[k]->Fill(ele.phi());
-                        }   
-                    }
-
-                }else{ // for endcap
-
-                    meEleISO_Ntracks_Sig_EE_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
-                    meEleISO_chIso_Sig_EE_->Fill(pT_sum_noMTD);
-                    meEleISO_rel_chIso_Sig_EE_->Fill(rel_pT_sum_noMTD);
-
-                    for(long unsigned int j = 0 ; j < Ntracks_EE_list_Sig.size(); j++){
-                        Ntracks_EE_list_Sig[j]->Fill(N_tracks_MTD[j]);
-                        ch_iso_EE_list_Sig[j]->Fill(pT_sum_MTD[j]);
-                        rel_ch_iso_EE_list_Sig[j]->Fill(rel_pT_sum_MTD[j]);
-                    }
-
-                    if(rel_pT_sum_noMTD < 0.08 ){ // filling hists for iso efficiency calculations
-                        meEle_pt_noMTD_Sig_EE_->Fill(ele.pt());
-                        meEle_eta_noMTD_Sig_EE_->Fill(ele.eta());
-                        meEle_phi_noMTD_Sig_EE_->Fill(ele.phi());
-                    }
-
-                    for(long unsigned int k = 0 ; k < Ntracks_EE_list_Sig.size(); k++){
-                        if(rel_pT_sum_MTD[k] < 0.08){
-                            Ele_pT_MTD_EE_list_Sig[k]->Fill(ele.pt());
-                            Ele_eta_MTD_EE_list_Sig[k]->Fill(ele.eta());
-                            Ele_phi_MTD_EE_list_Sig[k]->Fill(ele.phi());
-                        }   
-                    }
-                } 
-            }else{ // non-promt part
-                if(Barrel_ele){
-
-                    meEleISO_Ntracks_Bkg_EB_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
-                    meEleISO_chIso_Bkg_EB_->Fill(pT_sum_noMTD);
-                    meEleISO_rel_chIso_Bkg_EB_->Fill(rel_pT_sum_noMTD);
-
-                    for(long unsigned int j = 0 ; j < Ntracks_EB_list_Bkg.size(); j++){
-                        Ntracks_EB_list_Bkg[j]->Fill(N_tracks_MTD[j]);
-                        ch_iso_EB_list_Bkg[j]->Fill(pT_sum_MTD[j]);
-                        rel_ch_iso_EB_list_Bkg[j]->Fill(rel_pT_sum_MTD[j]);
-                    }
-
-                    if(rel_pT_sum_noMTD < 0.08 ){ // filling hists for iso efficiency calculations
-                        meEle_pt_noMTD_Bkg_EB_->Fill(ele.pt());
-                        meEle_eta_noMTD_Bkg_EB_->Fill(ele.eta());
-                        meEle_phi_noMTD_Bkg_EB_->Fill(ele.phi());
-                    }
-
-                    for(long unsigned int k = 0 ; k < Ntracks_EB_list_Bkg.size(); k++){
-                        if(rel_pT_sum_MTD[k] < 0.08){
-                            Ele_pT_MTD_EB_list_Bkg[k]->Fill(ele.pt());
-                            Ele_eta_MTD_EB_list_Bkg[k]->Fill(ele.eta());
-                            Ele_phi_MTD_EB_list_Bkg[k]->Fill(ele.phi());
-                        }   
-                    }
-
-                }else{ // for endcap
-                    meEleISO_Ntracks_Bkg_EE_->Fill(N_tracks_noMTD); // Filling hists for Ntraks and chIso sums for noMTD case //
-                    meEleISO_chIso_Bkg_EE_->Fill(pT_sum_noMTD);
-                    meEleISO_rel_chIso_Bkg_EE_->Fill(rel_pT_sum_noMTD);
-
-                    for(long unsigned int j = 0 ; j < Ntracks_EE_list_Bkg.size(); j++){
-                        Ntracks_EE_list_Bkg[j]->Fill(N_tracks_MTD[j]);
-                        ch_iso_EE_list_Bkg[j]->Fill(pT_sum_MTD[j]);
-                        rel_ch_iso_EE_list_Bkg[j]->Fill(rel_pT_sum_MTD[j]);
-                    }
-
-                    if(rel_pT_sum_noMTD < 0.08 ){ // filling hists for iso efficiency calculations
-                        meEle_pt_noMTD_Bkg_EE_->Fill(ele.pt());
-                        meEle_eta_noMTD_Bkg_EE_->Fill(ele.eta());
-                        meEle_phi_noMTD_Bkg_EE_->Fill(ele.phi());
-                    }
-
-                    for(long unsigned int k = 0 ; k < Ntracks_EE_list_Bkg.size(); k++){
-                        if(rel_pT_sum_MTD[k] < 0.08){
-                            Ele_pT_MTD_EE_list_Bkg[k]->Fill(ele.pt());
-                            Ele_eta_MTD_EE_list_Bkg[k]->Fill(ele.eta());
-                            Ele_phi_MTD_EE_list_Bkg[k]->Fill(ele.phi());
-                        }   
-                    }
+                for(long unsigned int k = 0 ; k < Ntracks_EE_list_Bkg.size(); k++){
+                    if(rel_pT_sum_MTD[k] < rel_iso_cut_){
+                        Ele_pT_MTD_EE_list_Bkg[k]->Fill(ele.pt());
+                        Ele_eta_MTD_EE_list_Bkg[k]->Fill(ele.eta());
+                        Ele_phi_MTD_EE_list_Bkg[k]->Fill(ele.phi());
+                    }   
                 }
             }
-            
-        } // electron matched to a track
-    } // electron collection inside single event
-  } // Bool iso statement end
-
+        }
+    } // electron matched to a track
+  } // electron collection inside single event
 }
 
 // ------------ method for histogram booking ------------
@@ -1203,8 +1169,7 @@ void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<std::string>("folder", "MTD/Tracks");
   desc.add<edm::InputTag>("inputTagG", edm::InputTag("generalTracks"));
   desc.add<edm::InputTag>("inputTagT", edm::InputTag("trackExtenderWithMTD"));
-  desc.add<edm::InputTag>("inputTag_4D", edm::InputTag("offlinePrimaryVertices4D")); //  offlinePrimaryVertices4D
-  desc.add<edm::InputTag>("inputTag_3D", edm::InputTag("offlinePrimaryVertices"));
+  desc.add<edm::InputTag>("inputTag_vtx", edm::InputTag("offlinePrimaryVertices4D")); //  "offlinePrimaryVertices4D" or "offlinePrimaryVertices" (3D case)
   desc.add<edm::InputTag>("inputTagH", edm::InputTag("generatorSmeared"));
 
   desc.add<edm::InputTag>("inputEle_EB", edm::InputTag("gedGsfElectrons")); // Adding the electron collection name ! (At least I think I'm doing that) // barrel ecal and track driven electrons
@@ -1227,12 +1192,10 @@ void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<double>("trackMinimumPt", 1.0);  // [GeV]
   desc.add<double>("trackMinimumEta", 1.5);
   desc.add<double>("trackMaximumEta", 3.2);
-  desc.addUntracked<bool>("optionalEleIso", true);
+  desc.add<double>("rel_iso_cut", 0.08);
   desc.addUntracked<bool>("optionTrackMatchToPV", false);
   desc.addUntracked<bool>("option_dtToPV", true);
   desc.addUntracked<bool>("option_dtToTrack", false);
-  desc.addUntracked<bool>("option_vtx_3D", false);
-  desc.addUntracked<bool>("option_vtx_4D", true);
   
   descriptions.add("mtdEleIsoValid", desc);
    // Added option to calculate ele iso
