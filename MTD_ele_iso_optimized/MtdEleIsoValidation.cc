@@ -1166,7 +1166,7 @@ void MtdEleIsoValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
 void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
 
-  desc.add<std::string>("folder", "MTD/Tracks");
+  desc.add<std::string>("folder", "MTD/ElectronIso");
   desc.add<edm::InputTag>("inputTagG", edm::InputTag("generalTracks"));
   desc.add<edm::InputTag>("inputTagT", edm::InputTag("trackExtenderWithMTD"));
   desc.add<edm::InputTag>("inputTag_vtx", edm::InputTag("offlinePrimaryVertices4D")); //  "offlinePrimaryVertices4D" or "offlinePrimaryVertices" (3D case)
