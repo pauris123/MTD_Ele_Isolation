@@ -1215,7 +1215,7 @@ void MtdEleIsoHarvester::dqmEndJob(DQMStore::IBooker& ibook, DQMStore::IGetter& 
 void MtdEleIsoHarvester::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
 
-  desc.add<std::string>("folder", "MTD/Tracks/");
+  desc.add<std::string>("folder", "MTD/ElectronIso/");
 
   descriptions.add("MtdEleIsoPostProcessor", desc);
 }
