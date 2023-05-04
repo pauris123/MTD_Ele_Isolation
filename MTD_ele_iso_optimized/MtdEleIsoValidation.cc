@@ -71,6 +71,7 @@ private:
   const float trackMinEta_;
   const float trackMaxEta_;
   const double rel_iso_cut_;
+  const std::vector<double> pTcuts_;
 
   bool track_match_PV_;
   bool dt_sig_vtx_;
@@ -88,6 +89,7 @@ private:
   const std::vector<double> max_dt_track_cut{0.30,0.27,0.24,0.21,0.18,0.15,0.12}; 
   static constexpr float min_strip_cut = 0.01;
   static constexpr float min_track_mtd_mva_cut = 0.5;
+
 
 
 
@@ -439,42 +441,13 @@ MtdEleIsoValidation::MtdEleIsoValidation(const edm::ParameterSet& iConfig)
       trackMinEta_(iConfig.getParameter<double>("trackMinimumEta")),
       trackMaxEta_(iConfig.getParameter<double>("trackMaximumEta")),
       rel_iso_cut_(iConfig.getParameter<double>("rel_iso_cut")),
+      pTcuts_(iConfig.getParameter<std::vector<double>>("pt_cuts")), // example that works for double, but not for MonitorElement*
       track_match_PV_(iConfig.getUntrackedParameter<bool>("optionTrackMatchToPV")),
       dt_sig_vtx_(iConfig.getUntrackedParameter<bool>("option_dtToPV")),
-      dt_sig_track_(iConfig.getUntrackedParameter<bool>("option_dtToTrack")), //{
+      dt_sig_track_(iConfig.getUntrackedParameter<bool>("option_dtToTrack")) {
       
-      Ntracks_EB_list_Sig({meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_}),
-      //Ntracks_EB_list_Sig(iConfig.getParameter<std::vector<MonitorElement*>>("Ntracks_EB_list_Sig_test")),
-      ch_iso_EB_list_Sig({meEleISO_chIso_MTD_1_Sig_EB_,meEleISO_chIso_MTD_2_Sig_EB_,meEleISO_chIso_MTD_3_Sig_EB_,meEleISO_chIso_MTD_4_Sig_EB_,meEleISO_chIso_MTD_5_Sig_EB_,meEleISO_chIso_MTD_6_Sig_EB_,meEleISO_chIso_MTD_7_Sig_EB_}),
-      rel_ch_iso_EB_list_Sig({meEleISO_rel_chIso_MTD_1_Sig_EB_,meEleISO_rel_chIso_MTD_2_Sig_EB_,meEleISO_rel_chIso_MTD_3_Sig_EB_,meEleISO_rel_chIso_MTD_4_Sig_EB_,meEleISO_rel_chIso_MTD_5_Sig_EB_,meEleISO_rel_chIso_MTD_6_Sig_EB_,meEleISO_rel_chIso_MTD_7_Sig_EB_}),
+    //Ntracks_EB_list_Sig(iConfig.getParameter<std::vector<MonitorElement*>>("Ntracks_EB_list_Sig_test")) { // Example that does not work, but does work for double type
 
-      Ntracks_EE_list_Sig({meEleISO_Ntracks_MTD_1_Sig_EE_,meEleISO_Ntracks_MTD_2_Sig_EE_,meEleISO_Ntracks_MTD_3_Sig_EE_,meEleISO_Ntracks_MTD_4_Sig_EE_,meEleISO_Ntracks_MTD_5_Sig_EE_,meEleISO_Ntracks_MTD_6_Sig_EE_,meEleISO_Ntracks_MTD_7_Sig_EE_}),
-      ch_iso_EE_list_Sig({meEleISO_chIso_MTD_1_Sig_EE_,meEleISO_chIso_MTD_2_Sig_EE_,meEleISO_chIso_MTD_3_Sig_EE_,meEleISO_chIso_MTD_4_Sig_EE_,meEleISO_chIso_MTD_5_Sig_EE_,meEleISO_chIso_MTD_6_Sig_EE_,meEleISO_chIso_MTD_7_Sig_EE_}),
-      rel_ch_iso_EE_list_Sig({meEleISO_rel_chIso_MTD_1_Sig_EE_,meEleISO_rel_chIso_MTD_2_Sig_EE_,meEleISO_rel_chIso_MTD_3_Sig_EE_,meEleISO_rel_chIso_MTD_4_Sig_EE_,meEleISO_rel_chIso_MTD_5_Sig_EE_,meEleISO_rel_chIso_MTD_6_Sig_EE_,meEleISO_rel_chIso_MTD_7_Sig_EE_}),
-
-      Ele_pT_MTD_EB_list_Sig({meEle_pt_MTD_1_Sig_EB_,meEle_pt_MTD_2_Sig_EB_,meEle_pt_MTD_3_Sig_EB_,meEle_pt_MTD_4_Sig_EB_,meEle_pt_MTD_5_Sig_EB_,meEle_pt_MTD_6_Sig_EB_,meEle_pt_MTD_7_Sig_EB_}),
-      Ele_eta_MTD_EB_list_Sig({meEle_eta_MTD_1_Sig_EB_,meEle_eta_MTD_2_Sig_EB_,meEle_eta_MTD_3_Sig_EB_,meEle_eta_MTD_4_Sig_EB_,meEle_eta_MTD_5_Sig_EB_,meEle_eta_MTD_6_Sig_EB_,meEle_eta_MTD_7_Sig_EB_}),
-      Ele_phi_MTD_EB_list_Sig({meEle_phi_MTD_1_Sig_EB_,meEle_phi_MTD_2_Sig_EB_,meEle_phi_MTD_3_Sig_EB_,meEle_phi_MTD_4_Sig_EB_,meEle_phi_MTD_5_Sig_EB_,meEle_phi_MTD_6_Sig_EB_,meEle_phi_MTD_7_Sig_EB_}),
-      
-      Ele_pT_MTD_EE_list_Sig({meEle_pt_MTD_1_Sig_EE_,meEle_pt_MTD_2_Sig_EE_,meEle_pt_MTD_3_Sig_EE_,meEle_pt_MTD_4_Sig_EE_,meEle_pt_MTD_5_Sig_EE_,meEle_pt_MTD_6_Sig_EE_,meEle_pt_MTD_7_Sig_EE_}),
-      Ele_eta_MTD_EE_list_Sig({meEle_eta_MTD_1_Sig_EE_,meEle_eta_MTD_2_Sig_EE_,meEle_eta_MTD_3_Sig_EE_,meEle_eta_MTD_4_Sig_EE_,meEle_eta_MTD_5_Sig_EE_,meEle_eta_MTD_6_Sig_EE_,meEle_eta_MTD_7_Sig_EE_}),
-      Ele_phi_MTD_EE_list_Sig({meEle_phi_MTD_1_Sig_EE_,meEle_phi_MTD_2_Sig_EE_,meEle_phi_MTD_3_Sig_EE_,meEle_phi_MTD_4_Sig_EE_,meEle_phi_MTD_5_Sig_EE_,meEle_phi_MTD_6_Sig_EE_,meEle_phi_MTD_7_Sig_EE_}),
-      
-      Ntracks_EB_list_Bkg({meEleISO_Ntracks_MTD_1_Bkg_EB_,meEleISO_Ntracks_MTD_2_Bkg_EB_,meEleISO_Ntracks_MTD_3_Bkg_EB_,meEleISO_Ntracks_MTD_4_Bkg_EB_,meEleISO_Ntracks_MTD_5_Bkg_EB_,meEleISO_Ntracks_MTD_6_Bkg_EB_,meEleISO_Ntracks_MTD_7_Bkg_EB_}),
-      ch_iso_EB_list_Bkg({meEleISO_chIso_MTD_1_Bkg_EB_,meEleISO_chIso_MTD_2_Bkg_EB_,meEleISO_chIso_MTD_3_Bkg_EB_,meEleISO_chIso_MTD_4_Bkg_EB_,meEleISO_chIso_MTD_5_Bkg_EB_,meEleISO_chIso_MTD_6_Bkg_EB_,meEleISO_chIso_MTD_7_Bkg_EB_}),
-      rel_ch_iso_EB_list_Bkg({meEleISO_rel_chIso_MTD_1_Bkg_EB_,meEleISO_rel_chIso_MTD_2_Bkg_EB_,meEleISO_rel_chIso_MTD_3_Bkg_EB_,meEleISO_rel_chIso_MTD_4_Bkg_EB_,meEleISO_rel_chIso_MTD_5_Bkg_EB_,meEleISO_rel_chIso_MTD_6_Bkg_EB_,meEleISO_rel_chIso_MTD_7_Bkg_EB_}),
-
-      Ntracks_EE_list_Bkg({meEleISO_Ntracks_MTD_1_Bkg_EE_,meEleISO_Ntracks_MTD_2_Bkg_EE_,meEleISO_Ntracks_MTD_3_Bkg_EE_,meEleISO_Ntracks_MTD_4_Bkg_EE_,meEleISO_Ntracks_MTD_5_Bkg_EE_,meEleISO_Ntracks_MTD_6_Bkg_EE_,meEleISO_Ntracks_MTD_7_Bkg_EE_}),
-      ch_iso_EE_list_Bkg({meEleISO_chIso_MTD_1_Bkg_EE_,meEleISO_chIso_MTD_2_Bkg_EE_,meEleISO_chIso_MTD_3_Bkg_EE_,meEleISO_chIso_MTD_4_Bkg_EE_,meEleISO_chIso_MTD_5_Bkg_EE_,meEleISO_chIso_MTD_6_Bkg_EE_,meEleISO_chIso_MTD_7_Bkg_EE_}),
-      rel_ch_iso_EE_list_Bkg({meEleISO_rel_chIso_MTD_1_Bkg_EE_,meEleISO_rel_chIso_MTD_2_Bkg_EE_,meEleISO_rel_chIso_MTD_3_Bkg_EE_,meEleISO_rel_chIso_MTD_4_Bkg_EE_,meEleISO_rel_chIso_MTD_5_Bkg_EE_,meEleISO_rel_chIso_MTD_6_Bkg_EE_,meEleISO_rel_chIso_MTD_7_Bkg_EE_}),
-
-      Ele_pT_MTD_EB_list_Bkg({meEle_pt_MTD_1_Bkg_EB_,meEle_pt_MTD_2_Bkg_EB_,meEle_pt_MTD_3_Bkg_EB_,meEle_pt_MTD_4_Bkg_EB_,meEle_pt_MTD_5_Bkg_EB_,meEle_pt_MTD_6_Bkg_EB_,meEle_pt_MTD_7_Bkg_EB_}),
-      Ele_eta_MTD_EB_list_Bkg({meEle_eta_MTD_1_Bkg_EB_,meEle_eta_MTD_2_Bkg_EB_,meEle_eta_MTD_3_Bkg_EB_,meEle_eta_MTD_4_Bkg_EB_,meEle_eta_MTD_5_Bkg_EB_,meEle_eta_MTD_6_Bkg_EB_,meEle_eta_MTD_7_Bkg_EB_}),
-      Ele_phi_MTD_EB_list_Bkg({meEle_phi_MTD_1_Bkg_EB_,meEle_phi_MTD_2_Bkg_EB_,meEle_phi_MTD_3_Bkg_EB_,meEle_phi_MTD_4_Bkg_EB_,meEle_phi_MTD_5_Bkg_EB_,meEle_phi_MTD_6_Bkg_EB_,meEle_phi_MTD_7_Bkg_EB_}),
-
-      Ele_pT_MTD_EE_list_Bkg({meEle_pt_MTD_1_Bkg_EE_,meEle_pt_MTD_2_Bkg_EE_,meEle_pt_MTD_3_Bkg_EE_,meEle_pt_MTD_4_Bkg_EE_,meEle_pt_MTD_5_Bkg_EE_,meEle_pt_MTD_6_Bkg_EE_,meEle_pt_MTD_7_Bkg_EE_}),
-      Ele_eta_MTD_EE_list_Bkg({meEle_eta_MTD_1_Bkg_EE_,meEle_eta_MTD_2_Bkg_EE_,meEle_eta_MTD_3_Bkg_EE_,meEle_eta_MTD_4_Bkg_EE_,meEle_eta_MTD_5_Bkg_EE_,meEle_eta_MTD_6_Bkg_EE_,meEle_eta_MTD_7_Bkg_EE_}),
-      Ele_phi_MTD_EE_list_Bkg({meEle_phi_MTD_1_Bkg_EE_,meEle_phi_MTD_2_Bkg_EE_,meEle_phi_MTD_3_Bkg_EE_,meEle_phi_MTD_4_Bkg_EE_,meEle_phi_MTD_5_Bkg_EE_,meEle_phi_MTD_6_Bkg_EE_,meEle_phi_MTD_7_Bkg_EE_}) {
   GenRecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTagG"));
   RecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTagT"));
   RecVertexToken_ = consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("inputTag_vtx")); // Vtx 4D collection
@@ -523,8 +496,6 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
   const auto& mtdQualMVA = iEvent.get(trackMVAQualToken_);
   //const auto& trackAssoc = iEvent.get(trackAssocToken_);
   //const auto& pathLength = iEvent.get(pathLengthToken_);
-
- 
 
     
     
@@ -782,73 +753,38 @@ void MtdEleIsoValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
         // defining vectors for more efficient hist filling
         // Promt part
-        // std::vector<MonitorElement*> Ntracks_EB_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_};
-        // std::vector<MonitorElement*> ch_iso_EB_list_Sig = {meEleISO_chIso_MTD_1_Sig_EB_,meEleISO_chIso_MTD_2_Sig_EB_,meEleISO_chIso_MTD_3_Sig_EB_,meEleISO_chIso_MTD_4_Sig_EB_,meEleISO_chIso_MTD_5_Sig_EB_,meEleISO_chIso_MTD_6_Sig_EB_,meEleISO_chIso_MTD_7_Sig_EB_};
-        // std::vector<MonitorElement*> rel_ch_iso_EB_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EB_,meEleISO_rel_chIso_MTD_2_Sig_EB_,meEleISO_rel_chIso_MTD_3_Sig_EB_,meEleISO_rel_chIso_MTD_4_Sig_EB_,meEleISO_rel_chIso_MTD_5_Sig_EB_,meEleISO_rel_chIso_MTD_6_Sig_EB_,meEleISO_rel_chIso_MTD_7_Sig_EB_};
+        Ntracks_EB_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_};
+        ch_iso_EB_list_Sig = {meEleISO_chIso_MTD_1_Sig_EB_,meEleISO_chIso_MTD_2_Sig_EB_,meEleISO_chIso_MTD_3_Sig_EB_,meEleISO_chIso_MTD_4_Sig_EB_,meEleISO_chIso_MTD_5_Sig_EB_,meEleISO_chIso_MTD_6_Sig_EB_,meEleISO_chIso_MTD_7_Sig_EB_};
+        rel_ch_iso_EB_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EB_,meEleISO_rel_chIso_MTD_2_Sig_EB_,meEleISO_rel_chIso_MTD_3_Sig_EB_,meEleISO_rel_chIso_MTD_4_Sig_EB_,meEleISO_rel_chIso_MTD_5_Sig_EB_,meEleISO_rel_chIso_MTD_6_Sig_EB_,meEleISO_rel_chIso_MTD_7_Sig_EB_};
 
-        // std::vector<MonitorElement*> Ntracks_EE_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EE_,meEleISO_Ntracks_MTD_2_Sig_EE_,meEleISO_Ntracks_MTD_3_Sig_EE_,meEleISO_Ntracks_MTD_4_Sig_EE_,meEleISO_Ntracks_MTD_5_Sig_EE_,meEleISO_Ntracks_MTD_6_Sig_EE_,meEleISO_Ntracks_MTD_7_Sig_EE_};
-        // std::vector<MonitorElement*> ch_iso_EE_list_Sig = {meEleISO_chIso_MTD_1_Sig_EE_,meEleISO_chIso_MTD_2_Sig_EE_,meEleISO_chIso_MTD_3_Sig_EE_,meEleISO_chIso_MTD_4_Sig_EE_,meEleISO_chIso_MTD_5_Sig_EE_,meEleISO_chIso_MTD_6_Sig_EE_,meEleISO_chIso_MTD_7_Sig_EE_};
-        // std::vector<MonitorElement*> rel_ch_iso_EE_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EE_,meEleISO_rel_chIso_MTD_2_Sig_EE_,meEleISO_rel_chIso_MTD_3_Sig_EE_,meEleISO_rel_chIso_MTD_4_Sig_EE_,meEleISO_rel_chIso_MTD_5_Sig_EE_,meEleISO_rel_chIso_MTD_6_Sig_EE_,meEleISO_rel_chIso_MTD_7_Sig_EE_};
+        Ntracks_EE_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EE_,meEleISO_Ntracks_MTD_2_Sig_EE_,meEleISO_Ntracks_MTD_3_Sig_EE_,meEleISO_Ntracks_MTD_4_Sig_EE_,meEleISO_Ntracks_MTD_5_Sig_EE_,meEleISO_Ntracks_MTD_6_Sig_EE_,meEleISO_Ntracks_MTD_7_Sig_EE_};
+        ch_iso_EE_list_Sig = {meEleISO_chIso_MTD_1_Sig_EE_,meEleISO_chIso_MTD_2_Sig_EE_,meEleISO_chIso_MTD_3_Sig_EE_,meEleISO_chIso_MTD_4_Sig_EE_,meEleISO_chIso_MTD_5_Sig_EE_,meEleISO_chIso_MTD_6_Sig_EE_,meEleISO_chIso_MTD_7_Sig_EE_};
+        rel_ch_iso_EE_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EE_,meEleISO_rel_chIso_MTD_2_Sig_EE_,meEleISO_rel_chIso_MTD_3_Sig_EE_,meEleISO_rel_chIso_MTD_4_Sig_EE_,meEleISO_rel_chIso_MTD_5_Sig_EE_,meEleISO_rel_chIso_MTD_6_Sig_EE_,meEleISO_rel_chIso_MTD_7_Sig_EE_};
 
-        // std::vector<MonitorElement*> Ele_pT_MTD_EB_list_Sig = {meEle_pt_MTD_1_Sig_EB_,meEle_pt_MTD_2_Sig_EB_,meEle_pt_MTD_3_Sig_EB_,meEle_pt_MTD_4_Sig_EB_,meEle_pt_MTD_5_Sig_EB_,meEle_pt_MTD_6_Sig_EB_,meEle_pt_MTD_7_Sig_EB_};
-        // std::vector<MonitorElement*> Ele_eta_MTD_EB_list_Sig = {meEle_eta_MTD_1_Sig_EB_,meEle_eta_MTD_2_Sig_EB_,meEle_eta_MTD_3_Sig_EB_,meEle_eta_MTD_4_Sig_EB_,meEle_eta_MTD_5_Sig_EB_,meEle_eta_MTD_6_Sig_EB_,meEle_eta_MTD_7_Sig_EB_};
-        // std::vector<MonitorElement*> Ele_phi_MTD_EB_list_Sig = {meEle_phi_MTD_1_Sig_EB_,meEle_phi_MTD_2_Sig_EB_,meEle_phi_MTD_3_Sig_EB_,meEle_phi_MTD_4_Sig_EB_,meEle_phi_MTD_5_Sig_EB_,meEle_phi_MTD_6_Sig_EB_,meEle_phi_MTD_7_Sig_EB_};
+        Ele_pT_MTD_EB_list_Sig = {meEle_pt_MTD_1_Sig_EB_,meEle_pt_MTD_2_Sig_EB_,meEle_pt_MTD_3_Sig_EB_,meEle_pt_MTD_4_Sig_EB_,meEle_pt_MTD_5_Sig_EB_,meEle_pt_MTD_6_Sig_EB_,meEle_pt_MTD_7_Sig_EB_};
+        Ele_eta_MTD_EB_list_Sig = {meEle_eta_MTD_1_Sig_EB_,meEle_eta_MTD_2_Sig_EB_,meEle_eta_MTD_3_Sig_EB_,meEle_eta_MTD_4_Sig_EB_,meEle_eta_MTD_5_Sig_EB_,meEle_eta_MTD_6_Sig_EB_,meEle_eta_MTD_7_Sig_EB_};
+        Ele_phi_MTD_EB_list_Sig = {meEle_phi_MTD_1_Sig_EB_,meEle_phi_MTD_2_Sig_EB_,meEle_phi_MTD_3_Sig_EB_,meEle_phi_MTD_4_Sig_EB_,meEle_phi_MTD_5_Sig_EB_,meEle_phi_MTD_6_Sig_EB_,meEle_phi_MTD_7_Sig_EB_};
 
-        // std::vector<MonitorElement*> Ele_pT_MTD_EE_list_Sig = {meEle_pt_MTD_1_Sig_EE_,meEle_pt_MTD_2_Sig_EE_,meEle_pt_MTD_3_Sig_EE_,meEle_pt_MTD_4_Sig_EE_,meEle_pt_MTD_5_Sig_EE_,meEle_pt_MTD_6_Sig_EE_,meEle_pt_MTD_7_Sig_EE_};
-        // std::vector<MonitorElement*> Ele_eta_MTD_EE_list_Sig = {meEle_eta_MTD_1_Sig_EE_,meEle_eta_MTD_2_Sig_EE_,meEle_eta_MTD_3_Sig_EE_,meEle_eta_MTD_4_Sig_EE_,meEle_eta_MTD_5_Sig_EE_,meEle_eta_MTD_6_Sig_EE_,meEle_eta_MTD_7_Sig_EE_};
-        // std::vector<MonitorElement*> Ele_phi_MTD_EE_list_Sig = {meEle_phi_MTD_1_Sig_EE_,meEle_phi_MTD_2_Sig_EE_,meEle_phi_MTD_3_Sig_EE_,meEle_phi_MTD_4_Sig_EE_,meEle_phi_MTD_5_Sig_EE_,meEle_phi_MTD_6_Sig_EE_,meEle_phi_MTD_7_Sig_EE_};
+        Ele_pT_MTD_EE_list_Sig = {meEle_pt_MTD_1_Sig_EE_,meEle_pt_MTD_2_Sig_EE_,meEle_pt_MTD_3_Sig_EE_,meEle_pt_MTD_4_Sig_EE_,meEle_pt_MTD_5_Sig_EE_,meEle_pt_MTD_6_Sig_EE_,meEle_pt_MTD_7_Sig_EE_};
+        Ele_eta_MTD_EE_list_Sig = {meEle_eta_MTD_1_Sig_EE_,meEle_eta_MTD_2_Sig_EE_,meEle_eta_MTD_3_Sig_EE_,meEle_eta_MTD_4_Sig_EE_,meEle_eta_MTD_5_Sig_EE_,meEle_eta_MTD_6_Sig_EE_,meEle_eta_MTD_7_Sig_EE_};
+        Ele_phi_MTD_EE_list_Sig = {meEle_phi_MTD_1_Sig_EE_,meEle_phi_MTD_2_Sig_EE_,meEle_phi_MTD_3_Sig_EE_,meEle_phi_MTD_4_Sig_EE_,meEle_phi_MTD_5_Sig_EE_,meEle_phi_MTD_6_Sig_EE_,meEle_phi_MTD_7_Sig_EE_};
 
-        // // Non-promt part
-        // std::vector<MonitorElement*> Ntracks_EB_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EB_,meEleISO_Ntracks_MTD_2_Bkg_EB_,meEleISO_Ntracks_MTD_3_Bkg_EB_,meEleISO_Ntracks_MTD_4_Bkg_EB_,meEleISO_Ntracks_MTD_5_Bkg_EB_,meEleISO_Ntracks_MTD_6_Bkg_EB_,meEleISO_Ntracks_MTD_7_Bkg_EB_};
-        // std::vector<MonitorElement*> ch_iso_EB_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EB_,meEleISO_chIso_MTD_2_Bkg_EB_,meEleISO_chIso_MTD_3_Bkg_EB_,meEleISO_chIso_MTD_4_Bkg_EB_,meEleISO_chIso_MTD_5_Bkg_EB_,meEleISO_chIso_MTD_6_Bkg_EB_,meEleISO_chIso_MTD_7_Bkg_EB_};
-        // std::vector<MonitorElement*> rel_ch_iso_EB_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EB_,meEleISO_rel_chIso_MTD_2_Bkg_EB_,meEleISO_rel_chIso_MTD_3_Bkg_EB_,meEleISO_rel_chIso_MTD_4_Bkg_EB_,meEleISO_rel_chIso_MTD_5_Bkg_EB_,meEleISO_rel_chIso_MTD_6_Bkg_EB_,meEleISO_rel_chIso_MTD_7_Bkg_EB_};
+        // Non-promt part
+        Ntracks_EB_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EB_,meEleISO_Ntracks_MTD_2_Bkg_EB_,meEleISO_Ntracks_MTD_3_Bkg_EB_,meEleISO_Ntracks_MTD_4_Bkg_EB_,meEleISO_Ntracks_MTD_5_Bkg_EB_,meEleISO_Ntracks_MTD_6_Bkg_EB_,meEleISO_Ntracks_MTD_7_Bkg_EB_};
+        ch_iso_EB_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EB_,meEleISO_chIso_MTD_2_Bkg_EB_,meEleISO_chIso_MTD_3_Bkg_EB_,meEleISO_chIso_MTD_4_Bkg_EB_,meEleISO_chIso_MTD_5_Bkg_EB_,meEleISO_chIso_MTD_6_Bkg_EB_,meEleISO_chIso_MTD_7_Bkg_EB_};
+        rel_ch_iso_EB_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EB_,meEleISO_rel_chIso_MTD_2_Bkg_EB_,meEleISO_rel_chIso_MTD_3_Bkg_EB_,meEleISO_rel_chIso_MTD_4_Bkg_EB_,meEleISO_rel_chIso_MTD_5_Bkg_EB_,meEleISO_rel_chIso_MTD_6_Bkg_EB_,meEleISO_rel_chIso_MTD_7_Bkg_EB_};
 
-        // std::vector<MonitorElement*> Ntracks_EE_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EE_,meEleISO_Ntracks_MTD_2_Bkg_EE_,meEleISO_Ntracks_MTD_3_Bkg_EE_,meEleISO_Ntracks_MTD_4_Bkg_EE_,meEleISO_Ntracks_MTD_5_Bkg_EE_,meEleISO_Ntracks_MTD_6_Bkg_EE_,meEleISO_Ntracks_MTD_7_Bkg_EE_};
-        // std::vector<MonitorElement*> ch_iso_EE_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EE_,meEleISO_chIso_MTD_2_Bkg_EE_,meEleISO_chIso_MTD_3_Bkg_EE_,meEleISO_chIso_MTD_4_Bkg_EE_,meEleISO_chIso_MTD_5_Bkg_EE_,meEleISO_chIso_MTD_6_Bkg_EE_,meEleISO_chIso_MTD_7_Bkg_EE_};
-        // std::vector<MonitorElement*> rel_ch_iso_EE_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EE_,meEleISO_rel_chIso_MTD_2_Bkg_EE_,meEleISO_rel_chIso_MTD_3_Bkg_EE_,meEleISO_rel_chIso_MTD_4_Bkg_EE_,meEleISO_rel_chIso_MTD_5_Bkg_EE_,meEleISO_rel_chIso_MTD_6_Bkg_EE_,meEleISO_rel_chIso_MTD_7_Bkg_EE_};
+        Ntracks_EE_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EE_,meEleISO_Ntracks_MTD_2_Bkg_EE_,meEleISO_Ntracks_MTD_3_Bkg_EE_,meEleISO_Ntracks_MTD_4_Bkg_EE_,meEleISO_Ntracks_MTD_5_Bkg_EE_,meEleISO_Ntracks_MTD_6_Bkg_EE_,meEleISO_Ntracks_MTD_7_Bkg_EE_};
+        ch_iso_EE_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EE_,meEleISO_chIso_MTD_2_Bkg_EE_,meEleISO_chIso_MTD_3_Bkg_EE_,meEleISO_chIso_MTD_4_Bkg_EE_,meEleISO_chIso_MTD_5_Bkg_EE_,meEleISO_chIso_MTD_6_Bkg_EE_,meEleISO_chIso_MTD_7_Bkg_EE_};
+        rel_ch_iso_EE_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EE_,meEleISO_rel_chIso_MTD_2_Bkg_EE_,meEleISO_rel_chIso_MTD_3_Bkg_EE_,meEleISO_rel_chIso_MTD_4_Bkg_EE_,meEleISO_rel_chIso_MTD_5_Bkg_EE_,meEleISO_rel_chIso_MTD_6_Bkg_EE_,meEleISO_rel_chIso_MTD_7_Bkg_EE_};
 
-        // std::vector<MonitorElement*> Ele_pT_MTD_EB_list_Bkg = {meEle_pt_MTD_1_Bkg_EB_,meEle_pt_MTD_2_Bkg_EB_,meEle_pt_MTD_3_Bkg_EB_,meEle_pt_MTD_4_Bkg_EB_,meEle_pt_MTD_5_Bkg_EB_,meEle_pt_MTD_6_Bkg_EB_,meEle_pt_MTD_7_Bkg_EB_};
-        // std::vector<MonitorElement*> Ele_eta_MTD_EB_list_Bkg = {meEle_eta_MTD_1_Bkg_EB_,meEle_eta_MTD_2_Bkg_EB_,meEle_eta_MTD_3_Bkg_EB_,meEle_eta_MTD_4_Bkg_EB_,meEle_eta_MTD_5_Bkg_EB_,meEle_eta_MTD_6_Bkg_EB_,meEle_eta_MTD_7_Bkg_EB_};
-        // std::vector<MonitorElement*> Ele_phi_MTD_EB_list_Bkg = {meEle_phi_MTD_1_Bkg_EB_,meEle_phi_MTD_2_Bkg_EB_,meEle_phi_MTD_3_Bkg_EB_,meEle_phi_MTD_4_Bkg_EB_,meEle_phi_MTD_5_Bkg_EB_,meEle_phi_MTD_6_Bkg_EB_,meEle_phi_MTD_7_Bkg_EB_};
+        Ele_pT_MTD_EB_list_Bkg = {meEle_pt_MTD_1_Bkg_EB_,meEle_pt_MTD_2_Bkg_EB_,meEle_pt_MTD_3_Bkg_EB_,meEle_pt_MTD_4_Bkg_EB_,meEle_pt_MTD_5_Bkg_EB_,meEle_pt_MTD_6_Bkg_EB_,meEle_pt_MTD_7_Bkg_EB_};
+        Ele_eta_MTD_EB_list_Bkg = {meEle_eta_MTD_1_Bkg_EB_,meEle_eta_MTD_2_Bkg_EB_,meEle_eta_MTD_3_Bkg_EB_,meEle_eta_MTD_4_Bkg_EB_,meEle_eta_MTD_5_Bkg_EB_,meEle_eta_MTD_6_Bkg_EB_,meEle_eta_MTD_7_Bkg_EB_};
+        Ele_phi_MTD_EB_list_Bkg = {meEle_phi_MTD_1_Bkg_EB_,meEle_phi_MTD_2_Bkg_EB_,meEle_phi_MTD_3_Bkg_EB_,meEle_phi_MTD_4_Bkg_EB_,meEle_phi_MTD_5_Bkg_EB_,meEle_phi_MTD_6_Bkg_EB_,meEle_phi_MTD_7_Bkg_EB_};
 
-        // std::vector<MonitorElement*> Ele_pT_MTD_EE_list_Bkg = {meEle_pt_MTD_1_Bkg_EE_,meEle_pt_MTD_2_Bkg_EE_,meEle_pt_MTD_3_Bkg_EE_,meEle_pt_MTD_4_Bkg_EE_,meEle_pt_MTD_5_Bkg_EE_,meEle_pt_MTD_6_Bkg_EE_,meEle_pt_MTD_7_Bkg_EE_};
-        // std::vector<MonitorElement*> Ele_eta_MTD_EE_list_Bkg = {meEle_eta_MTD_1_Bkg_EE_,meEle_eta_MTD_2_Bkg_EE_,meEle_eta_MTD_3_Bkg_EE_,meEle_eta_MTD_4_Bkg_EE_,meEle_eta_MTD_5_Bkg_EE_,meEle_eta_MTD_6_Bkg_EE_,meEle_eta_MTD_7_Bkg_EE_};
-        // std::vector<MonitorElement*> Ele_phi_MTD_EE_list_Bkg = {meEle_phi_MTD_1_Bkg_EE_,meEle_phi_MTD_2_Bkg_EE_,meEle_phi_MTD_3_Bkg_EE_,meEle_phi_MTD_4_Bkg_EE_,meEle_phi_MTD_5_Bkg_EE_,meEle_phi_MTD_6_Bkg_EE_,meEle_phi_MTD_7_Bkg_EE_};
-
-
-        // Promt part
-        // Ntracks_EB_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_};
-        // ch_iso_EB_list_Sig = {meEleISO_chIso_MTD_1_Sig_EB_,meEleISO_chIso_MTD_2_Sig_EB_,meEleISO_chIso_MTD_3_Sig_EB_,meEleISO_chIso_MTD_4_Sig_EB_,meEleISO_chIso_MTD_5_Sig_EB_,meEleISO_chIso_MTD_6_Sig_EB_,meEleISO_chIso_MTD_7_Sig_EB_};
-        // rel_ch_iso_EB_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EB_,meEleISO_rel_chIso_MTD_2_Sig_EB_,meEleISO_rel_chIso_MTD_3_Sig_EB_,meEleISO_rel_chIso_MTD_4_Sig_EB_,meEleISO_rel_chIso_MTD_5_Sig_EB_,meEleISO_rel_chIso_MTD_6_Sig_EB_,meEleISO_rel_chIso_MTD_7_Sig_EB_};
-
-        // Ntracks_EE_list_Sig = {meEleISO_Ntracks_MTD_1_Sig_EE_,meEleISO_Ntracks_MTD_2_Sig_EE_,meEleISO_Ntracks_MTD_3_Sig_EE_,meEleISO_Ntracks_MTD_4_Sig_EE_,meEleISO_Ntracks_MTD_5_Sig_EE_,meEleISO_Ntracks_MTD_6_Sig_EE_,meEleISO_Ntracks_MTD_7_Sig_EE_};
-        // ch_iso_EE_list_Sig = {meEleISO_chIso_MTD_1_Sig_EE_,meEleISO_chIso_MTD_2_Sig_EE_,meEleISO_chIso_MTD_3_Sig_EE_,meEleISO_chIso_MTD_4_Sig_EE_,meEleISO_chIso_MTD_5_Sig_EE_,meEleISO_chIso_MTD_6_Sig_EE_,meEleISO_chIso_MTD_7_Sig_EE_};
-        // rel_ch_iso_EE_list_Sig = {meEleISO_rel_chIso_MTD_1_Sig_EE_,meEleISO_rel_chIso_MTD_2_Sig_EE_,meEleISO_rel_chIso_MTD_3_Sig_EE_,meEleISO_rel_chIso_MTD_4_Sig_EE_,meEleISO_rel_chIso_MTD_5_Sig_EE_,meEleISO_rel_chIso_MTD_6_Sig_EE_,meEleISO_rel_chIso_MTD_7_Sig_EE_};
-
-        // Ele_pT_MTD_EB_list_Sig = {meEle_pt_MTD_1_Sig_EB_,meEle_pt_MTD_2_Sig_EB_,meEle_pt_MTD_3_Sig_EB_,meEle_pt_MTD_4_Sig_EB_,meEle_pt_MTD_5_Sig_EB_,meEle_pt_MTD_6_Sig_EB_,meEle_pt_MTD_7_Sig_EB_};
-        // Ele_eta_MTD_EB_list_Sig = {meEle_eta_MTD_1_Sig_EB_,meEle_eta_MTD_2_Sig_EB_,meEle_eta_MTD_3_Sig_EB_,meEle_eta_MTD_4_Sig_EB_,meEle_eta_MTD_5_Sig_EB_,meEle_eta_MTD_6_Sig_EB_,meEle_eta_MTD_7_Sig_EB_};
-        // Ele_phi_MTD_EB_list_Sig = {meEle_phi_MTD_1_Sig_EB_,meEle_phi_MTD_2_Sig_EB_,meEle_phi_MTD_3_Sig_EB_,meEle_phi_MTD_4_Sig_EB_,meEle_phi_MTD_5_Sig_EB_,meEle_phi_MTD_6_Sig_EB_,meEle_phi_MTD_7_Sig_EB_};
-
-        // Ele_pT_MTD_EE_list_Sig = {meEle_pt_MTD_1_Sig_EE_,meEle_pt_MTD_2_Sig_EE_,meEle_pt_MTD_3_Sig_EE_,meEle_pt_MTD_4_Sig_EE_,meEle_pt_MTD_5_Sig_EE_,meEle_pt_MTD_6_Sig_EE_,meEle_pt_MTD_7_Sig_EE_};
-        // Ele_eta_MTD_EE_list_Sig = {meEle_eta_MTD_1_Sig_EE_,meEle_eta_MTD_2_Sig_EE_,meEle_eta_MTD_3_Sig_EE_,meEle_eta_MTD_4_Sig_EE_,meEle_eta_MTD_5_Sig_EE_,meEle_eta_MTD_6_Sig_EE_,meEle_eta_MTD_7_Sig_EE_};
-        // Ele_phi_MTD_EE_list_Sig = {meEle_phi_MTD_1_Sig_EE_,meEle_phi_MTD_2_Sig_EE_,meEle_phi_MTD_3_Sig_EE_,meEle_phi_MTD_4_Sig_EE_,meEle_phi_MTD_5_Sig_EE_,meEle_phi_MTD_6_Sig_EE_,meEle_phi_MTD_7_Sig_EE_};
-
-        // // Non-promt part
-        // Ntracks_EB_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EB_,meEleISO_Ntracks_MTD_2_Bkg_EB_,meEleISO_Ntracks_MTD_3_Bkg_EB_,meEleISO_Ntracks_MTD_4_Bkg_EB_,meEleISO_Ntracks_MTD_5_Bkg_EB_,meEleISO_Ntracks_MTD_6_Bkg_EB_,meEleISO_Ntracks_MTD_7_Bkg_EB_};
-        // ch_iso_EB_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EB_,meEleISO_chIso_MTD_2_Bkg_EB_,meEleISO_chIso_MTD_3_Bkg_EB_,meEleISO_chIso_MTD_4_Bkg_EB_,meEleISO_chIso_MTD_5_Bkg_EB_,meEleISO_chIso_MTD_6_Bkg_EB_,meEleISO_chIso_MTD_7_Bkg_EB_};
-        // rel_ch_iso_EB_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EB_,meEleISO_rel_chIso_MTD_2_Bkg_EB_,meEleISO_rel_chIso_MTD_3_Bkg_EB_,meEleISO_rel_chIso_MTD_4_Bkg_EB_,meEleISO_rel_chIso_MTD_5_Bkg_EB_,meEleISO_rel_chIso_MTD_6_Bkg_EB_,meEleISO_rel_chIso_MTD_7_Bkg_EB_};
-
-        // Ntracks_EE_list_Bkg = {meEleISO_Ntracks_MTD_1_Bkg_EE_,meEleISO_Ntracks_MTD_2_Bkg_EE_,meEleISO_Ntracks_MTD_3_Bkg_EE_,meEleISO_Ntracks_MTD_4_Bkg_EE_,meEleISO_Ntracks_MTD_5_Bkg_EE_,meEleISO_Ntracks_MTD_6_Bkg_EE_,meEleISO_Ntracks_MTD_7_Bkg_EE_};
-        // ch_iso_EE_list_Bkg = {meEleISO_chIso_MTD_1_Bkg_EE_,meEleISO_chIso_MTD_2_Bkg_EE_,meEleISO_chIso_MTD_3_Bkg_EE_,meEleISO_chIso_MTD_4_Bkg_EE_,meEleISO_chIso_MTD_5_Bkg_EE_,meEleISO_chIso_MTD_6_Bkg_EE_,meEleISO_chIso_MTD_7_Bkg_EE_};
-        // rel_ch_iso_EE_list_Bkg = {meEleISO_rel_chIso_MTD_1_Bkg_EE_,meEleISO_rel_chIso_MTD_2_Bkg_EE_,meEleISO_rel_chIso_MTD_3_Bkg_EE_,meEleISO_rel_chIso_MTD_4_Bkg_EE_,meEleISO_rel_chIso_MTD_5_Bkg_EE_,meEleISO_rel_chIso_MTD_6_Bkg_EE_,meEleISO_rel_chIso_MTD_7_Bkg_EE_};
-
-        // Ele_pT_MTD_EB_list_Bkg = {meEle_pt_MTD_1_Bkg_EB_,meEle_pt_MTD_2_Bkg_EB_,meEle_pt_MTD_3_Bkg_EB_,meEle_pt_MTD_4_Bkg_EB_,meEle_pt_MTD_5_Bkg_EB_,meEle_pt_MTD_6_Bkg_EB_,meEle_pt_MTD_7_Bkg_EB_};
-        // Ele_eta_MTD_EB_list_Bkg = {meEle_eta_MTD_1_Bkg_EB_,meEle_eta_MTD_2_Bkg_EB_,meEle_eta_MTD_3_Bkg_EB_,meEle_eta_MTD_4_Bkg_EB_,meEle_eta_MTD_5_Bkg_EB_,meEle_eta_MTD_6_Bkg_EB_,meEle_eta_MTD_7_Bkg_EB_};
-        // Ele_phi_MTD_EB_list_Bkg = {meEle_phi_MTD_1_Bkg_EB_,meEle_phi_MTD_2_Bkg_EB_,meEle_phi_MTD_3_Bkg_EB_,meEle_phi_MTD_4_Bkg_EB_,meEle_phi_MTD_5_Bkg_EB_,meEle_phi_MTD_6_Bkg_EB_,meEle_phi_MTD_7_Bkg_EB_};
-
-        // Ele_pT_MTD_EE_list_Bkg = {meEle_pt_MTD_1_Bkg_EE_,meEle_pt_MTD_2_Bkg_EE_,meEle_pt_MTD_3_Bkg_EE_,meEle_pt_MTD_4_Bkg_EE_,meEle_pt_MTD_5_Bkg_EE_,meEle_pt_MTD_6_Bkg_EE_,meEle_pt_MTD_7_Bkg_EE_};
-        // Ele_eta_MTD_EE_list_Bkg = {meEle_eta_MTD_1_Bkg_EE_,meEle_eta_MTD_2_Bkg_EE_,meEle_eta_MTD_3_Bkg_EE_,meEle_eta_MTD_4_Bkg_EE_,meEle_eta_MTD_5_Bkg_EE_,meEle_eta_MTD_6_Bkg_EE_,meEle_eta_MTD_7_Bkg_EE_};
-        // Ele_phi_MTD_EE_list_Bkg = {meEle_phi_MTD_1_Bkg_EE_,meEle_phi_MTD_2_Bkg_EE_,meEle_phi_MTD_3_Bkg_EE_,meEle_phi_MTD_4_Bkg_EE_,meEle_phi_MTD_5_Bkg_EE_,meEle_phi_MTD_6_Bkg_EE_,meEle_phi_MTD_7_Bkg_EE_};
+        Ele_pT_MTD_EE_list_Bkg = {meEle_pt_MTD_1_Bkg_EE_,meEle_pt_MTD_2_Bkg_EE_,meEle_pt_MTD_3_Bkg_EE_,meEle_pt_MTD_4_Bkg_EE_,meEle_pt_MTD_5_Bkg_EE_,meEle_pt_MTD_6_Bkg_EE_,meEle_pt_MTD_7_Bkg_EE_};
+        Ele_eta_MTD_EE_list_Bkg = {meEle_eta_MTD_1_Bkg_EE_,meEle_eta_MTD_2_Bkg_EE_,meEle_eta_MTD_3_Bkg_EE_,meEle_eta_MTD_4_Bkg_EE_,meEle_eta_MTD_5_Bkg_EE_,meEle_eta_MTD_6_Bkg_EE_,meEle_eta_MTD_7_Bkg_EE_};
+        Ele_phi_MTD_EE_list_Bkg = {meEle_phi_MTD_1_Bkg_EE_,meEle_phi_MTD_2_Bkg_EE_,meEle_phi_MTD_3_Bkg_EE_,meEle_phi_MTD_4_Bkg_EE_,meEle_phi_MTD_5_Bkg_EE_,meEle_phi_MTD_6_Bkg_EE_,meEle_phi_MTD_7_Bkg_EE_};
 
         if(ele_Promt){ // promt part
             if(Barrel_ele){
@@ -1293,13 +1229,14 @@ void MtdEleIsoValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<double>("trackMinimumEta", 1.5);
   desc.add<double>("trackMaximumEta", 3.2);
   desc.add<double>("rel_iso_cut", 0.08);
-  //desc.add<std::vector<MonitorElement*>>("Ntracks_EB_list_Sig_test", {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_});
+  desc.add<std::vector<double>>("pt_cuts", {0.08,0.10,0.12}); // example for vector initialization, works for int, does not work for predifined pointers, like in the next line
+  //desc.add<std::vector<MonitorElement*>>("Ntracks_EB_list_Sig_test", {meEleISO_Ntracks_MTD_1_Sig_EB_,meEleISO_Ntracks_MTD_2_Sig_EB_,meEleISO_Ntracks_MTD_3_Sig_EB_,meEleISO_Ntracks_MTD_4_Sig_EB_,meEleISO_Ntracks_MTD_5_Sig_EB_,meEleISO_Ntracks_MTD_6_Sig_EB_,meEleISO_Ntracks_MTD_7_Sig_EB_}); // example that does not work...
   desc.addUntracked<bool>("optionTrackMatchToPV", false);
   desc.addUntracked<bool>("option_dtToPV", true);
   desc.addUntracked<bool>("option_dtToTrack", false);
   
   descriptions.add("mtdEleIsoValid", desc);
-   // Added option to calculate ele iso
+  
 }
 
 
