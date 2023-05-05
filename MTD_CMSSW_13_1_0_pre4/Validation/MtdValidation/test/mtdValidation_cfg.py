@@ -36,6 +36,7 @@ process.source = cms.Source("PoolSource",
     )
 )
 
+# input files from correct CMSSW version!
 # process.source = cms.Source("PoolSource",
 #     fileNames = cms.untracked.vstring(
 #         #'/store/relval/CMSSW_12_3_1/RelValZEE_14/GEN-SIM-RECO/PU_123X_mcRun4_realistic_v10_2026D88PU200-v1/2580000/004d34e5-d815-439e-b5b5-7bf4197bd02b.root'
